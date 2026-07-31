@@ -1,0 +1,13 @@
+node_modules/
+.pnpm-store/
+.nx/
+.tmp/
+dist/
+*.tsbuildinfo
+.DS_Store
+cli/README.md
+
+# pnpm skills:install generated files
+CLAUDE.md
+.agents/skills
+.claude/skills

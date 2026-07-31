@@ -1,0 +1,59 @@
+{
+  "name": "waymark-docs",
+  "version": "0.1.1",
+  "description": "Agent-focused CLI that surfaces repository documentation to improve coding-agent performance.",
+  "keywords": [
+    "ai-agents",
+    "cli",
+    "context-engineering",
+    "documentation",
+    "markdown"
+  ],
+  "homepage": "https://github.com/ysfaran/waymark#readme",
+  "bugs": {
+    "url": "https://github.com/ysfaran/waymark/issues"
+  },
+  "license": "MIT",
+  "author": "Yusuf Aran",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ysfaran/waymark.git",
+    "directory": "cli"
+  },
+  "bin": {
+    "waymark": "dist/cli.js"
+  },
+  "files": [
+    "CHANGELOG.md",
+    "dist"
+  ],
+  "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "pnpm clean && tsc --project tsconfig.json && chmod +x dist/cli.js",
+    "clean": "rm -rf dist",
+    "dev": "tsx src/cli.ts",
+    "prepack": "cp ../README.md ../CHANGELOG.md ../LICENSE . && pnpm build",
+    "postpack": "rm -f README.md CHANGELOG.md LICENSE",
+    "test": "pnpm test:unit && pnpm test:integration",
+    "test:unit": "vitest run --config vitest.unit.config.ts",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "typecheck": "tsc --project tsconfig.json --noEmit && tsc --project tsconfig.test.json --noEmit"
+  },
+  "dependencies": {
+    "commander": "14.0.3",
+    "globby": "16.2.2",
+    "yaml": "2.9.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.10",
+    "tsx": "4.20.6",
+    "typescript": "7.0.2",
+    "vitest": "4.0.18"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

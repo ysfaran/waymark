@@ -1,0 +1,41 @@
+{
+  "name": "waymark",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Discover repository documentation relevant to coding agents",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "pnpm --recursive build",
+    "check": "pnpm typecheck && pnpm test && pnpm lint && pnpm format:check",
+    "typecheck": "tsc --project tsconfig.json --noEmit && pnpm --recursive typecheck",
+    "test": "pnpm --filter waymark-docs test",
+    "lint": "oxlint .",
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check .",
+    "skills:install": "./install-skills.sh",
+    "skills:refresh": "rm -rf .agents .claude && pnpm skills:install"
+  },
+  "devDependencies": {
+    "@tsconfig/node24": "24.0.4",
+    "@types/node": "24.10.10",
+    "oxfmt": "0.60.0",
+    "oxlint": "1.75.0",
+    "oxlint-tsgolint": "7.0.2001",
+    "skills": "1.5.14",
+    "typescript": "7.0.2"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "11.18.0",
+      "onFail": "error"
+    },
+    "runtime": {
+      "name": "node",
+      "version": "24.18.0",
+      "onFail": "error"
+    }
+  },
+  "packageManager": "pnpm@11.18.0"
+}
