@@ -1,0 +1,21 @@
+require-namespace: false
+kinds:
+  adr: Records a durable architectural decision and its constraints
+  agent-guide: Instructions for coding agents working in this repository
+  research: Evidence and analysis supporting project decisions
+
+tags:
+  # Engineering
+  architecture: System design, boundaries, and durable technical decisions
+  cli: Command-line interface design and behavior
+  code-quality: Code structure, linting, formatting, and maintainability
+  typescript: TypeScript language, tooling, and conventions
+
+  # Waymark domain
+  waymark-config: Waymark configuration files and behavior
+  waymark-documents: Registration, discovery, and selection of Waymark Documents
+  waymark-metadata: Metadata declaration, validation, and filtering
+
+  # Repository workflow
+  agents: Instructions and workflows for coding agents
+  release: Package naming, publishing, and release automation
