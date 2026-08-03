@@ -1,3 +1,9 @@
+---
+kind: agent-guide
+description: Read before pushing or submitting a change for merge; defines required checks and commit conventions
+tags: [agents, code-quality]
+---
+
 # Contributing
 
 ## Setup
