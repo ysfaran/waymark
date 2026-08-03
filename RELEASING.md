@@ -5,9 +5,9 @@ long-lived npm token is stored in GitHub.
 
 ## How releases work
 
-CI checks pull requests and changes pushed to `main`. Separately, Release Please
-updates a release pull request from changes on `main`. Conventional Commit types
-determine the next semantic version and the generated changelog:
+CI checks pull requests. Separately, Release Please updates a release pull
+request from changes on `main`. Conventional Commit types determine the next
+semantic version and the generated changelog:
 
 - `fix:` creates a patch release.
 - `feat:` creates a minor release.
