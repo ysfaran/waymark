@@ -35,23 +35,19 @@ npm install --save-dev waymark-docs
 
 ## Quick start
 
-1. Create a Waymark configuration in the repository root:
+1. **Create a Waymark configuration.**
+
+   Run `init` in the repository root:
 
    ```sh
    npx waymark init
    ```
 
-2. Define the document kinds and tags that agents can search:
+2. **Define searchable metadata.**
+
+   Add the document kinds and tags that agents can search:
 
    ```yaml
-   # When true, document metadata must be nested under a `waymark` frontmatter key.
-   require-namespace: false
-
-   # Skip generated or vendored documentation during discovery.
-   ignore:
-     - docs/generated/**
-     - vendor/**
-
    kinds:
      adr: Read to understand past architectural decisions and their constraints
      convention: Read before changing code to follow required repository practices
@@ -61,11 +57,10 @@ npm install --save-dev waymark-docs
      typescript: TypeScript-related documentation
    ```
 
-   Ignore patterns are relative to the repository root and support `*`, `?`,
-   and `**` wildcards. Waymark also honors `.gitignore` automatically.
+3. **Register a document.**
 
-3. Register a Markdown or MDX file by adding Waymark metadata. For example,
-   save this as `docs/conventions/typescript.md`:
+   Add Waymark metadata to a Markdown or MDX file. For example, save this as
+   `docs/conventions/typescript.md`:
 
    ```yaml
    ---
@@ -76,7 +71,9 @@ npm install --save-dev waymark-docs
    # TypeScript conventions
    ```
 
-4. Validate the repository:
+4. **Validate the repository.**
+
+   Check the configuration and discovered documents:
 
    ```sh
    npx waymark status
@@ -91,7 +88,9 @@ npm install --save-dev waymark-docs
    Tags: 2
    ```
 
-5. Discover the document:
+5. **Discover the document.**
+
+   Find the registered convention by kind and tag:
 
    ```sh
    npx waymark find --kinds convention --tags typescript --show description
@@ -143,6 +142,19 @@ tags:
   example-tag: Explain the topic represented by this tag
 ```
 
+To skip generated or vendored documentation during discovery, add `ignore`
+patterns:
+
+```yaml
+# Skip generated or vendored documentation during discovery.
+ignore:
+  - docs/generated/**
+  - vendor/**
+```
+
+Ignore patterns are relative to the repository root and support `*`, `?`, and
+`**` wildcards. Waymark also honors `.gitignore` automatically.
+
 `init` never overwrites an existing configuration and does not allow a nested
 configuration beneath another Waymark root.
 
@@ -190,7 +202,7 @@ Usage: waymark find [options]
 Options:
   -k, --kinds <identifiers>         Match any kind (comma-separated, repeatable)
   -t, --tags <identifiers>          Match any tag (comma-separated, repeatable)
-  -r, --require-tags <identifiers>  Require every tag (comma-separated, repeatable)
+  -T, --require-tags <identifiers>  Require every tag (comma-separated, repeatable)
   -f, --filter <expression>         Match a Boolean metadata filter
   -q, --query <text>                Match a literal content query
   -s, --show <fields>               Show kind, tags, and description
