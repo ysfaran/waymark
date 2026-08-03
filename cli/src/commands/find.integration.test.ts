@@ -590,7 +590,7 @@ integrationTest(
 );
 
 integrationTest(
-  "find supports documented shorthand options and rejects removed output aliases",
+  "find supports documented shorthand options and rejects removed aliases",
   async ({ temporaryRepositoryPath: repositoryPath }) => {
     await writeFile(
       join(repositoryPath, "waymark.yaml"),
@@ -619,7 +619,7 @@ integrationTest(
         "guide",
         "-t",
         "react",
-        "-r",
+        "-T",
         "react",
         "-q",
         "dependency injection",
@@ -637,8 +637,8 @@ integrationTest(
       arguments: ["find", "-j"],
       workingDirectoryPath: repositoryPath,
     });
-    const removedTreeShorthandResult = runWaymark({
-      arguments: ["find", "-T"],
+    const removedRequireTagsShorthandResult = runWaymark({
+      arguments: ["find", "-r", "react"],
       workingDirectoryPath: repositoryPath,
     });
 
@@ -652,7 +652,9 @@ integrationTest(
     expect(treeResult.stderr).toBe("");
     expect(removedJsonShorthandResult.status).toBe(1);
     expect(removedJsonShorthandResult.stderr).toContain("unknown option '-j'");
-    expect(removedTreeShorthandResult.status).toBe(1);
-    expect(removedTreeShorthandResult.stderr).toContain("unknown option '-T'");
+    expect(removedRequireTagsShorthandResult.status).toBe(1);
+    expect(removedRequireTagsShorthandResult.stderr).toContain(
+      "unknown option '-r'",
+    );
   },
 );
