@@ -44,7 +44,7 @@ export function createFindCommand(): Command {
       [],
     )
     .option(
-      "-r, --require-tags <identifiers>",
+      "-T, --require-tags <identifiers>",
       "Require every Document Tag (comma-separated, repeatable)",
       collectOptionValue,
       [],

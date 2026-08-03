@@ -1,3 +1,9 @@
+---
+kind: agent-guide
+description: Read before merging a change that may publish to npm; defines versioning and the release workflow
+tags: [agents, release]
+---
+
 # Releasing Waymark
 
 Waymark uses Release Please, GitHub Actions, and npm trusted publishing. No
@@ -5,9 +11,9 @@ long-lived npm token is stored in GitHub.
 
 ## How releases work
 
-CI checks pull requests and changes pushed to `main`. Separately, Release Please
-updates a release pull request from changes on `main`. Conventional Commit types
-determine the next semantic version and the generated changelog:
+CI checks pull requests. Separately, Release Please updates a release pull
+request from changes on `main`. Conventional Commit types determine the next
+semantic version and the generated changelog:
 
 - `fix:` creates a patch release.
 - `feat:` creates a minor release.
@@ -17,10 +23,20 @@ determine the next semantic version and the generated changelog:
 
 The repository is one release component even though its published package lives
 in `cli`. This keeps repository-level files that ship in the npm tarball, such
-as `README.md`, inside the release scope. Use `fix(readme):` for a README change
-that should produce a patch release; ordinary `docs:` commits remain
-non-releasing. Release Please updates the matching versions in both the root and
-`cli/package.json`.
+as `README.md`, inside the release scope. Use `docs(readme):` for README changes.
+When a README change is the only change that should trigger a release, include
+an explicit target version in the commit body:
+
+```text
+docs(readme): describe the change
+
+Release-As: X.Y.Z
+```
+
+Replace `X.Y.Z` with the intended next package version. Omit the footer when a
+`feat:`, `fix:`, or breaking commit already triggers the release. Other `docs:`
+commits remain non-releasing without this footer. Release Please updates the
+matching versions in both the root and `cli/package.json`.
 
 Merge the release pull request when its version and changelog are ready. The
 same workflow then:
