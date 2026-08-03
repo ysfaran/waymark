@@ -1,6 +1,6 @@
 {
   "name": "waymark",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "private": true,
   "description": "Discover repository documentation relevant to coding agents",
   "license": "MIT",
