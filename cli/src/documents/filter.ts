@@ -6,11 +6,20 @@ type FilterableDocument = {
   tags: string[];
 };
 
+type MetadataCriteria =
+  | {
+      method: "filter-groups";
+      kinds: Set<string>;
+      tags: Set<string>;
+      requiredTags: Set<string>;
+    }
+  | {
+      method: "filter-expression";
+      expression: string;
+    };
+
 type DocumentCriteria = {
-  kinds: string[];
-  tags: string[];
-  requiredTags: string[];
-  filter?: string;
+  metadata: MetadataCriteria;
   query?: string;
 };
 
@@ -38,42 +47,27 @@ export function filterDocuments({
   configuration: Configuration;
   criteria: DocumentCriteria;
 }): WaymarkDocument[] {
-  const kinds = parseIdentifierOptions({
-    optionName: "--kinds",
-    values: criteria.kinds,
-    declarations: configuration.kinds,
-    declarationName: "kind",
-  });
-  const tags = parseIdentifierOptions({
-    optionName: "--tags",
-    values: criteria.tags,
-    declarations: configuration.tags,
-    declarationName: "tag",
-  });
-  const requiredTags = parseIdentifierOptions({
-    optionName: "--require-tags",
-    values: criteria.requiredTags,
-    declarations: configuration.tags,
-    declarationName: "tag",
-  });
-  const matchesMetadataFilter =
-    criteria.filter === undefined
-      ? undefined
-      : parseMetadataFilter({
-          expression: criteria.filter,
+  const metadata = criteria.metadata;
+  const matchesMetadata =
+    metadata.method === "filter-expression"
+      ? parseMetadataFilter({
+          expression: metadata.expression,
           declaredKinds: new Set(configuration.kinds.keys()),
           declaredTags: new Set(configuration.tags.keys()),
-        });
+        })
+      : (document: FilterableDocument) =>
+          (metadata.kinds.size === 0 || metadata.kinds.has(document.kind)) &&
+          (metadata.tags.size === 0 ||
+            document.tags.some((tag) => metadata.tags.has(tag))) &&
+          [...metadata.requiredTags].every((tag) =>
+            document.tags.includes(tag),
+          );
   const normalizedQuery = criteria.query?.toLowerCase();
 
   return documents
     .filter(
       (document) =>
-        (kinds.size === 0 || kinds.has(document.kind)) &&
-        (tags.size === 0 || document.tags.some((tag) => tags.has(tag))) &&
-        [...requiredTags].every((tag) => document.tags.includes(tag)) &&
-        (matchesMetadataFilter === undefined ||
-          matchesMetadataFilter(document)) &&
+        matchesMetadata(document) &&
         (normalizedQuery === undefined ||
           document.body.toLowerCase().includes(normalizedQuery)),
     )
@@ -283,39 +277,6 @@ function describeToken(token: Token): string {
   if (token.type === "right-parenthesis") return '")"';
   if (token.type === "left-parenthesis") return '"("';
   return `"${token.type.toUpperCase()}"`;
-}
-
-function parseIdentifierOptions({
-  optionName,
-  values,
-  declarations,
-  declarationName,
-}: {
-  optionName: string;
-  values: string[];
-  declarations: Map<string, unknown>;
-  declarationName: "kind" | "tag";
-}): Set<string> {
-  const identifiers = new Set<string>();
-  for (const value of values) {
-    for (const identifier of value.split(",")) {
-      if (identifier === "") {
-        throw new Error(`${optionName} contains an empty identifier.`);
-      }
-      if (identifiers.has(identifier)) {
-        throw new Error(
-          `${optionName} contains duplicate identifier "${identifier}".`,
-        );
-      }
-      if (!declarations.has(identifier)) {
-        throw new Error(
-          `${optionName} contains undeclared ${declarationName} "${identifier}".`,
-        );
-      }
-      identifiers.add(identifier);
-    }
-  }
-  return identifiers;
 }
 
 function compareText(left: string, right: string): number {

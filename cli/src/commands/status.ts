@@ -18,7 +18,7 @@ export function createStatusCommand(): Command {
       const shownFields = parseShownFields(options.show);
       const loadedConfiguration = await loadConfiguration(process.cwd());
 
-      if (loadedConfiguration.kind === "malformed") {
+      if (loadedConfiguration.kind === "invalid") {
         process.stdout.write(
           `Root: ${loadedConfiguration.rootPath}\n` + "Status: invalid\n",
         );
@@ -27,16 +27,9 @@ export function createStatusCommand(): Command {
 
       const { configuration, rootPath } = loadedConfiguration;
       const documentScan = await scanDocuments({ rootPath, configuration });
-      const diagnostics = [
-        ...loadedConfiguration.diagnostics,
-        ...(documentScan.kind === "invalid" ? documentScan.diagnostics : []),
-      ].sort(compareDiagnostics);
-      if (
-        loadedConfiguration.diagnostics.length > 0 ||
-        documentScan.kind === "invalid"
-      ) {
+      if (documentScan.kind === "invalid") {
         process.stdout.write(`Root: ${rootPath}\n` + "Status: invalid\n");
-        throwDiagnostics(diagnostics);
+        throwDiagnostics(documentScan.diagnostics.sort(compareDiagnostics));
       }
 
       let output =

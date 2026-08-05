@@ -399,12 +399,20 @@ integrationTest(
 
     expect(kindsResult.status).toBe(0);
     expect(kindsResult.stdout).toBe("adr.md\nguide.md\n");
+    expect(kindsResult.stderr).toBe("");
+    expect(repeatedKindsResult.status).toBe(0);
     expect(repeatedKindsResult.stdout).toBe(kindsResult.stdout);
+    expect(repeatedKindsResult.stderr).toBe("");
     expect(tagsResult.status).toBe(0);
     expect(tagsResult.stdout).toBe("adr.md\nguide.md\n");
+    expect(tagsResult.stderr).toBe("");
+    expect(repeatedTagsResult.status).toBe(0);
     expect(repeatedTagsResult.stdout).toBe(tagsResult.stdout);
+    expect(repeatedTagsResult.stderr).toBe("");
     expect(requiredTagsResult.status).toBe(0);
     expect(requiredTagsResult.stdout).toBe("adr.md\n");
+    expect(requiredTagsResult.stderr).toBe("");
+    expect(repeatedRequiredTagsResult.status).toBe(0);
     expect(repeatedRequiredTagsResult.stdout).toBe(requiredTagsResult.stdout);
     expect(repeatedRequiredTagsResult.stderr).toBe("");
   },
@@ -651,8 +659,10 @@ integrationTest(
     expect(treeResult.stdout).toBe("guide.md\n");
     expect(treeResult.stderr).toBe("");
     expect(removedJsonShorthandResult.status).toBe(1);
+    expect(removedJsonShorthandResult.stdout).toBe("");
     expect(removedJsonShorthandResult.stderr).toContain("unknown option '-j'");
     expect(removedRequireTagsShorthandResult.status).toBe(1);
+    expect(removedRequireTagsShorthandResult.stdout).toBe("");
     expect(removedRequireTagsShorthandResult.stderr).toContain(
       "unknown option '-r'",
     );

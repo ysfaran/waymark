@@ -2,7 +2,9 @@ import { readFile } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
 
 import { parse } from "yaml";
+import { z } from "zod";
 
+import { compareDiagnostics } from "../diagnostics.js";
 import { pathExists } from "../filesystem.js";
 
 export const defaultConfigFileName = "waymark.yml";
@@ -10,6 +12,31 @@ export const allowedConfigFileNames = [
   defaultConfigFileName,
   "waymark.yaml",
 ] as const;
+
+const ignorePatternSchema = z
+  .string({ error: "Ignore glob must be a non-empty string." })
+  .superRefine((pattern, context) => {
+    if (pattern.trim() === "") {
+      context.addIssue({
+        code: "custom",
+        message: "Ignore glob must be a non-empty string.",
+      });
+      return;
+    }
+    if (pattern.startsWith("!")) {
+      context.addIssue({
+        code: "custom",
+        message: "Negation is not supported in ignore globs.",
+      });
+      return;
+    }
+    if (/[![\]{}()]/.test(pattern)) {
+      context.addIssue({
+        code: "custom",
+        message: "Only *, ?, and ** wildcard syntax is supported.",
+      });
+    }
+  });
 
 export type ConfigurationDeclaration = {
   description: string;
@@ -21,22 +48,70 @@ export type ConfigurationDiagnostic = {
   message: string;
 };
 
-export type Configuration = {
-  requireNamespace: boolean;
-  kinds: Map<string, ConfigurationDeclaration>;
-  tags: Map<string, ConfigurationDeclaration>;
-  ignorePatterns: string[];
-};
+const configurationDeclarationsSchema = z
+  .record(z.string(), z.unknown(), { error: "Expected a mapping." })
+  .superRefine((declarations, context) => {
+    for (const [identifier, description] of Object.entries(declarations)) {
+      if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(identifier)) {
+        context.addIssue({
+          code: "custom",
+          path: [identifier],
+          message: "Identifier must use lowercase kebab-case.",
+        });
+      }
+      if (typeof description !== "string" || description.trim() === "") {
+        context.addIssue({
+          code: "custom",
+          path: [identifier],
+          message: "Description must be a non-empty string.",
+        });
+      }
+    }
+  })
+  .transform(
+    (declarations): Map<string, ConfigurationDeclaration> =>
+      new Map(
+        Object.entries(declarations)
+          .filter(
+            (entry): entry is [string, string] => typeof entry[1] === "string",
+          )
+          .map(([identifier, description]) => [identifier, { description }]),
+      ),
+  );
+
+const configurationSchema = z
+  .strictObject(
+    {
+      "require-namespace": z
+        .boolean({ error: "Expected a boolean." })
+        .default(false),
+      kinds: configurationDeclarationsSchema,
+      tags: configurationDeclarationsSchema,
+      ignore: z
+        .array(ignorePatternSchema, {
+          error: "Expected a sequence of ignore globs.",
+        })
+        .default([]),
+    },
+    { error: "Expected a mapping." },
+  )
+  .transform((configuration) => ({
+    requireNamespace: configuration["require-namespace"],
+    kinds: configuration.kinds,
+    tags: configuration.tags,
+    ignorePatterns: configuration.ignore,
+  }));
+
+export type Configuration = z.infer<typeof configurationSchema>;
 
 export type ConfigurationLoadResult =
   | {
       kind: "loaded";
       rootPath: string;
       configuration: Configuration;
-      diagnostics: ConfigurationDiagnostic[];
     }
   | {
-      kind: "malformed";
+      kind: "invalid";
       rootPath: string;
       diagnostics: ConfigurationDiagnostic[];
     };
@@ -60,7 +135,7 @@ export async function loadConfiguration(
     ) as unknown;
   } catch {
     return {
-      kind: "malformed",
+      kind: "invalid",
       rootPath,
       diagnostics: [
         {
@@ -72,16 +147,23 @@ export async function loadConfiguration(
     };
   }
 
-  const diagnostics: ConfigurationDiagnostic[] = [];
+  const configurationResult =
+    configurationSchema.safeParse(parsedConfiguration);
+  if (!configurationResult.success) {
+    return {
+      kind: "invalid",
+      rootPath,
+      diagnostics: createConfigurationDiagnostics({
+        error: configurationResult.error,
+        configurationFileName: loadedConfigurationFileName,
+      }),
+    };
+  }
+
   return {
     kind: "loaded",
     rootPath,
-    configuration: validateConfiguration({
-      value: parsedConfiguration,
-      configurationFileName: loadedConfigurationFileName,
-      diagnostics,
-    }),
-    diagnostics,
+    configuration: configurationResult.data,
   };
 }
 
@@ -123,168 +205,31 @@ export async function findConfigurationPathInDirectory(
   return configurationPaths[0];
 }
 
-function validateConfiguration({
-  value,
+function createConfigurationDiagnostics({
+  error,
   configurationFileName,
-  diagnostics,
 }: {
-  value: unknown;
+  error: z.ZodError;
   configurationFileName: string;
-  diagnostics: ConfigurationDiagnostic[];
-}): Configuration {
-  if (!isRecord(value)) {
-    diagnostics.push({
-      path: configurationFileName,
-      field: "configuration",
-      message: "Expected a mapping.",
-    });
-  }
-  const configuration = isRecord(value) ? value : {};
-  const allowedFields = new Set([
-    "require-namespace",
-    "kinds",
-    "tags",
-    "ignore",
-  ]);
-  for (const field of Object.keys(configuration)) {
-    if (!allowedFields.has(field)) {
-      diagnostics.push({
-        path: configurationFileName,
-        field,
-        message: "Unknown field.",
-      });
+}): ConfigurationDiagnostic[] {
+  const diagnostics: ConfigurationDiagnostic[] = [];
+  for (const issue of error.issues) {
+    const field = issue.path.join(".") || "configuration";
+    if (issue.code === "unrecognized_keys") {
+      for (const key of issue.keys) {
+        diagnostics.push({
+          path: configurationFileName,
+          field: [...issue.path, key].join("."),
+          message: "Unknown field.",
+        });
+      }
+      continue;
     }
-  }
-
-  if (
-    configuration["require-namespace"] !== undefined &&
-    typeof configuration["require-namespace"] !== "boolean"
-  ) {
-    diagnostics.push({
-      path: configurationFileName,
-      field: "require-namespace",
-      message: "Expected a boolean.",
-    });
-  }
-
-  return {
-    requireNamespace: configuration["require-namespace"] === true,
-    kinds: validateDeclarations({
-      value: configuration.kinds,
-      field: "kinds",
-      configurationFileName,
-      diagnostics,
-    }),
-    tags: validateDeclarations({
-      value: configuration.tags,
-      field: "tags",
-      configurationFileName,
-      diagnostics,
-    }),
-    ignorePatterns: validateIgnorePatterns({
-      value: configuration.ignore,
-      configurationFileName,
-      diagnostics,
-    }),
-  };
-}
-
-function validateDeclarations({
-  value,
-  field,
-  configurationFileName,
-  diagnostics,
-}: {
-  value: unknown;
-  field: "kinds" | "tags";
-  configurationFileName: string;
-  diagnostics: ConfigurationDiagnostic[];
-}): Map<string, ConfigurationDeclaration> {
-  if (!isRecord(value)) {
     diagnostics.push({
       path: configurationFileName,
       field,
-      message: "Expected a mapping.",
-    });
-    return new Map();
-  }
-
-  const declarations = new Map<string, ConfigurationDeclaration>();
-  for (const [identifier, description] of Object.entries(value)) {
-    const diagnosticField = `${field}.${identifier}`;
-    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(identifier)) {
-      diagnostics.push({
-        path: configurationFileName,
-        field: diagnosticField,
-        message: "Identifier must use lowercase kebab-case.",
-      });
-    }
-    if (typeof description !== "string" || description.trim() === "") {
-      diagnostics.push({
-        path: configurationFileName,
-        field: diagnosticField,
-        message: "Description must be a non-empty string.",
-      });
-    }
-
-    declarations.set(identifier, {
-      description: typeof description === "string" ? description : "",
+      message: issue.message,
     });
   }
-  return declarations;
-}
-
-function validateIgnorePatterns({
-  value,
-  configurationFileName,
-  diagnostics,
-}: {
-  value: unknown;
-  configurationFileName: string;
-  diagnostics: ConfigurationDiagnostic[];
-}): string[] {
-  if (value === undefined) return [];
-  if (!Array.isArray(value)) {
-    diagnostics.push({
-      path: configurationFileName,
-      field: "ignore",
-      message: "Expected a sequence of ignore globs.",
-    });
-    return [];
-  }
-
-  const ignorePatterns: string[] = [];
-  for (const [index, pattern] of value.entries()) {
-    const field = `ignore.${index}`;
-    if (typeof pattern !== "string" || pattern.trim() === "") {
-      diagnostics.push({
-        path: configurationFileName,
-        field,
-        message: "Ignore glob must be a non-empty string.",
-      });
-      continue;
-    }
-    if (pattern.startsWith("!")) {
-      diagnostics.push({
-        path: configurationFileName,
-        field,
-        message: "Negation is not supported in ignore globs.",
-      });
-      continue;
-    }
-    if (/[![\]{}()]/.test(pattern)) {
-      diagnostics.push({
-        path: configurationFileName,
-        field,
-        message: "Only *, ?, and ** wildcard syntax is supported.",
-      });
-      continue;
-    }
-    ignorePatterns.push(pattern);
-  }
-  return ignorePatterns;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+  return diagnostics.sort(compareDiagnostics);
 }

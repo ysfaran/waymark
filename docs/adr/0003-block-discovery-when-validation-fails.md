@@ -9,6 +9,9 @@ tags: [architecture, waymark-metadata]
 Waymark will validate the repository configuration and all Waymark Documents
 before returning discovery results and will fail when configuration or document
 metadata is invalid.
+Configuration validation is the first gate: an invalid configuration produces
+diagnostics without a partial configuration, so document validation begins only
+after the configuration is valid.
 Silently skipping invalid documents could give a coding agent an incomplete
 answer that appears authoritative, so complete validation takes precedence over
 partial availability. Validation reports all independent errors it can find in

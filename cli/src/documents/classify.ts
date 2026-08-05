@@ -1,11 +1,13 @@
 import { parse } from "yaml";
+import { z } from "zod";
 
 import type { ConfigurationDeclaration } from "../configuration/index.js";
 
-type ClassifiedDocument = {
-  kind: string;
-  description: string;
-  tags: string[];
+const rawFrontmatterSchema = z.record(z.string(), z.unknown());
+
+type RawFrontmatter = z.infer<typeof rawFrontmatterSchema>;
+
+type ClassifiedDocument = z.infer<ReturnType<typeof createDocumentSchema>> & {
   body: string;
 };
 
@@ -19,13 +21,6 @@ type DocumentClassification =
   | { kind: "unregistered" }
   | { kind: "invalid"; diagnostics: DocumentDiagnostic[] }
   | { kind: "registered"; document: ClassifiedDocument };
-
-type ValidationContext = {
-  path: string;
-  declaredKinds: Map<string, ConfigurationDeclaration>;
-  declaredTags: Map<string, ConfigurationDeclaration>;
-  diagnostics: DocumentDiagnostic[];
-};
 
 export function classifyDocument({
   source,
@@ -53,12 +48,15 @@ export function classifyDocument({
       ],
     };
   }
-  if (frontmatter.kind === "none" || !isRecord(frontmatter.value)) {
+  if (frontmatter.kind === "none") {
     return { kind: "unregistered" };
   }
 
+  const frontmatterResult = rawFrontmatterSchema.safeParse(frontmatter.value);
+  if (!frontmatterResult.success) return { kind: "unregistered" };
+
   return validateRegistration({
-    frontmatter: frontmatter.value,
+    frontmatter: frontmatterResult.data,
     body: frontmatter.body,
     requireNamespace,
     declaredKinds,
@@ -99,7 +97,7 @@ function validateRegistration({
   declaredTags,
   path,
 }: {
-  frontmatter: Record<string, unknown>;
+  frontmatter: RawFrontmatter;
   body: string;
   requireNamespace: boolean;
   declaredKinds: Map<string, ConfigurationDeclaration>;
@@ -116,187 +114,155 @@ function validateRegistration({
     return { kind: "unregistered" };
   }
 
-  const diagnostics: DocumentDiagnostic[] = [];
   if (hasNamespace && hasRecognizedFlatMetadata) {
-    diagnostics.push({
-      path,
-      field: "waymark",
-      message: "Flat and namespaced metadata cannot both be declared.",
-    });
-    return { kind: "invalid", diagnostics };
+    return {
+      kind: "invalid",
+      diagnostics: [
+        {
+          path,
+          field: "waymark",
+          message: "Flat and namespaced metadata cannot both be declared.",
+        },
+      ],
+    };
   }
 
   const namespaced = hasNamespace;
-  const value = namespaced ? frontmatter.waymark : frontmatter;
+  const value = namespaced
+    ? frontmatter.waymark
+    : {
+        kind: frontmatter.kind,
+        description: frontmatter.description,
+        tags: frontmatter.tags,
+      };
   const fieldPrefix = namespaced ? "waymark." : "";
-  if (!isRecord(value)) {
-    diagnostics.push({
-      path,
-      field: namespaced ? "waymark" : "frontmatter",
-      message: "Expected a mapping.",
-    });
-    return { kind: "invalid", diagnostics };
-  }
-
-  if (namespaced) {
-    const allowedFields = new Set(["kind", "description", "tags"]);
-    for (const field of Object.keys(value)) {
-      if (!allowedFields.has(field)) {
-        diagnostics.push({
-          path,
-          field: `${fieldPrefix}${field}`,
-          message: "Unknown field.",
-        });
-      }
-    }
-  }
-
-  const context = { path, declaredKinds, declaredTags, diagnostics };
-  const kind = validateDocumentKind({
-    value: value.kind,
-    field: `${fieldPrefix}kind`,
-    context,
-  });
-  const description = validateDocumentDescription({
-    value: value.description,
-    field: `${fieldPrefix}description`,
-    context,
-  });
-  const tags = validateDocumentTags({
-    value: value.tags,
-    field: `${fieldPrefix}tags`,
-    context,
-  });
-
-  if (
-    diagnostics.length > 0 ||
-    kind === undefined ||
-    description === undefined ||
-    tags === undefined
-  ) {
-    return { kind: "invalid", diagnostics };
+  const metadataResult = createDocumentSchema({
+    declaredKinds,
+    declaredTags,
+  }).safeParse(value);
+  if (!metadataResult.success) {
+    return {
+      kind: "invalid",
+      diagnostics: createDocumentDiagnostics({
+        error: metadataResult.error,
+        path,
+        fieldPrefix,
+        rootField: namespaced ? "waymark" : "frontmatter",
+      }),
+    };
   }
 
   return {
     kind: "registered",
-    document: { kind, description, tags, body },
+    document: { ...metadataResult.data, body },
   };
 }
 
-function validateDocumentKind({
-  value,
-  field,
-  context,
+function createDocumentSchema({
+  declaredKinds,
+  declaredTags,
 }: {
-  value: unknown;
-  field: string;
-  context: ValidationContext;
-}): string | undefined {
-  if (value === undefined) {
-    context.diagnostics.push({
-      path: context.path,
-      field,
-      message: "Document kind is required.",
-    });
-    return undefined;
-  }
-  if (typeof value !== "string" || value.trim() === "") {
-    context.diagnostics.push({
-      path: context.path,
-      field,
-      message: "Document kind must be a non-empty string.",
-    });
-    return undefined;
-  }
-  if (!context.declaredKinds.has(value)) {
-    context.diagnostics.push({
-      path: context.path,
-      field,
-      message: `Undeclared kind "${value}".`,
-    });
-  }
-  return value;
+  declaredKinds: Map<string, ConfigurationDeclaration>;
+  declaredTags: Map<string, ConfigurationDeclaration>;
+}) {
+  return z.strictObject(
+    {
+      kind: z
+        .string({
+          error: (issue) =>
+            issue.input === undefined
+              ? "Document kind is required."
+              : "Document kind must be a non-empty string.",
+        })
+        .refine((kind) => kind.trim() !== "", {
+          error: "Document kind must be a non-empty string.",
+        })
+        .superRefine((kind, context) => {
+          if (kind.trim() !== "" && !declaredKinds.has(kind)) {
+            context.addIssue({
+              code: "custom",
+              message: `Undeclared kind "${kind}".`,
+            });
+          }
+        }),
+      description: z
+        .string({
+          error: (issue) =>
+            issue.input === undefined
+              ? "Document Description is required."
+              : "Document Description must be a non-empty string.",
+        })
+        .refine((description) => description.trim() !== "", {
+          error: "Document Description must be a non-empty string.",
+        }),
+      tags: z
+        .array(z.unknown(), { error: "Expected a YAML sequence of tags." })
+        .default([])
+        .superRefine((tags, context) => {
+          const seenTags = new Set<string>();
+          for (const tag of tags) {
+            if (typeof tag !== "string" || tag.trim() === "") {
+              context.addIssue({
+                code: "custom",
+                message: "Every tag must be a non-empty string.",
+              });
+              continue;
+            }
+            if (seenTags.has(tag)) {
+              context.addIssue({
+                code: "custom",
+                message: `Duplicate tag "${tag}".`,
+              });
+              continue;
+            }
+            seenTags.add(tag);
+            if (!declaredTags.has(tag)) {
+              context.addIssue({
+                code: "custom",
+                message: `Undeclared tag "${tag}".`,
+              });
+            }
+          }
+        })
+        .transform((tags): string[] =>
+          tags.filter((tag): tag is string => typeof tag === "string"),
+        ),
+    },
+    { error: "Expected a mapping." },
+  );
 }
 
-function validateDocumentDescription({
-  value,
-  field,
-  context,
+function createDocumentDiagnostics({
+  error,
+  path,
+  fieldPrefix,
+  rootField,
 }: {
-  value: unknown;
-  field: string;
-  context: ValidationContext;
-}): string | undefined {
-  if (value === undefined) {
-    context.diagnostics.push({
-      path: context.path,
-      field,
-      message: "Document Description is required.",
-    });
-    return undefined;
-  }
-  if (typeof value !== "string" || value.trim() === "") {
-    context.diagnostics.push({
-      path: context.path,
-      field,
-      message: "Document Description must be a non-empty string.",
-    });
-    return undefined;
-  }
-  return value;
-}
-
-function validateDocumentTags({
-  value,
-  field,
-  context,
-}: {
-  value: unknown;
-  field: string;
-  context: ValidationContext;
-}): string[] | undefined {
-  if (value === undefined) return [];
-  if (!Array.isArray(value)) {
-    context.diagnostics.push({
-      path: context.path,
-      field,
-      message: "Expected a YAML sequence of tags.",
-    });
-    return undefined;
-  }
-
-  const tags: string[] = [];
-  const seenTags = new Set<string>();
-  for (const tag of value) {
-    if (typeof tag !== "string" || tag.trim() === "") {
-      context.diagnostics.push({
-        path: context.path,
-        field,
-        message: "Every tag must be a non-empty string.",
-      });
+  error: z.ZodError;
+  path: string;
+  fieldPrefix: string;
+  rootField: string;
+}): DocumentDiagnostic[] {
+  const diagnostics: DocumentDiagnostic[] = [];
+  for (const issue of error.issues) {
+    if (issue.code === "unrecognized_keys") {
+      for (const key of issue.keys) {
+        diagnostics.push({
+          path,
+          field: `${fieldPrefix}${key}`,
+          message: "Unknown field.",
+        });
+      }
       continue;
     }
-    if (seenTags.has(tag)) {
-      context.diagnostics.push({
-        path: context.path,
-        field,
-        message: `Duplicate tag "${tag}".`,
-      });
-      continue;
-    }
-    seenTags.add(tag);
-    tags.push(tag);
-    if (!context.declaredTags.has(tag)) {
-      context.diagnostics.push({
-        path: context.path,
-        field,
-        message: `Undeclared tag "${tag}".`,
-      });
-    }
+    const field = issue.path.find(
+      (segment): segment is string => typeof segment === "string",
+    );
+    diagnostics.push({
+      path,
+      field: field === undefined ? rootField : `${fieldPrefix}${field}`,
+      message: issue.message,
+    });
   }
-  return tags;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+  return diagnostics;
 }
