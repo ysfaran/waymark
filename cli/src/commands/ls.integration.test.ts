@@ -135,6 +135,7 @@ integrationTest(
     expect(shortOptionResult.stdout).toBe(
       "docs/direct.md\ndocs/nested/child.md\n",
     );
+    expect(shortOptionResult.stderr).toBe("");
     expect(longOptionResult.status).toBe(0);
     expect(longOptionResult.stdout).toBe(shortOptionResult.stdout);
     expect(longOptionResult.stderr).toBe("");

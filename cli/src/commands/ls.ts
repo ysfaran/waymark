@@ -19,10 +19,7 @@ export function createLsCommand(): Command {
     .option("-u, --unregistered", "List only Unregistered Documents")
     .action(async (directory: string | undefined, options: LsOptions) => {
       const loadedConfiguration = await loadConfiguration(process.cwd());
-      if (loadedConfiguration.kind === "malformed") {
-        throwDiagnostics(loadedConfiguration.diagnostics);
-      }
-      if (loadedConfiguration.diagnostics.length > 0) {
+      if (loadedConfiguration.kind === "invalid") {
         throwDiagnostics(loadedConfiguration.diagnostics);
       }
 

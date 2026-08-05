@@ -93,6 +93,42 @@ integrationTest(
 );
 
 integrationTest(
+  "status stops before document scanning when configuration is invalid",
+  async ({ temporaryRepositoryPath: repositoryPath }) => {
+    await writeFile(
+      join(repositoryPath, "waymark.yaml"),
+      "require-namespace: sometimes\n" +
+        "kinds:\n" +
+        "  guide: 42\n" +
+        "tags: []\n",
+      "utf8",
+    );
+    await writeFile(
+      join(repositoryPath, "document.md"),
+      "---\nkind: guide\ndescription: 42\n---\n",
+      "utf8",
+    );
+
+    const result = runWaymark({
+      arguments: ["status"],
+      workingDirectoryPath: repositoryPath,
+    });
+
+    expect(result.status).toBe(1);
+    const canonicalRepositoryPath = await realpath(repositoryPath);
+    expect(result.stdout).toBe(
+      `Root: ${canonicalRepositoryPath}\nStatus: invalid\n`,
+    );
+    expect(result.stderr).toBe(
+      "error: waymark.yaml: kinds.guide: " +
+        "Description must be a non-empty string.\n" +
+        "error: waymark.yaml: require-namespace: Expected a boolean.\n" +
+        "error: waymark.yaml: tags: Expected a mapping.\n",
+    );
+  },
+);
+
+integrationTest(
   "status scans Markdown and MDX while honoring every ignore boundary",
   async ({ temporaryRepositoryPath: repositoryPath }) => {
     await mkdir(join(repositoryPath, "docs"), { recursive: true });
@@ -314,6 +350,57 @@ integrationTest(
 );
 
 integrationTest(
+  "status reports every invalid tag while rejecting scalar namespaced metadata",
+  async ({ temporaryRepositoryPath: repositoryPath }) => {
+    await writeFile(
+      join(repositoryPath, "waymark.yaml"),
+      "require-namespace: false\n" +
+        "kinds:\n" +
+        "  guide: Guides\n" +
+        "tags:\n" +
+        "  topic: Topics\n",
+      "utf8",
+    );
+    await writeFile(
+      join(repositoryPath, "a-invalid-tags.md"),
+      "---\n" +
+        "waymark:\n" +
+        "  kind: guide\n" +
+        "  description: Invalid tags\n" +
+        "  tags: [42, '', missing, missing, topic, topic]\n" +
+        "---\n",
+      "utf8",
+    );
+    await writeFile(
+      join(repositoryPath, "b-scalar-metadata.md"),
+      "---\nwaymark: metadata\n---\n",
+      "utf8",
+    );
+
+    const result = runWaymark({
+      arguments: ["status"],
+      workingDirectoryPath: repositoryPath,
+    });
+
+    expect(result.status).toBe(1);
+    const canonicalRepositoryPath = await realpath(repositoryPath);
+    expect(result.stdout).toBe(
+      `Root: ${canonicalRepositoryPath}\nStatus: invalid\n`,
+    );
+    expect(result.stderr).toBe(
+      'error: a-invalid-tags.md: waymark.tags: Duplicate tag "missing".\n' +
+        'error: a-invalid-tags.md: waymark.tags: Duplicate tag "topic".\n' +
+        "error: a-invalid-tags.md: waymark.tags: " +
+        "Every tag must be a non-empty string.\n" +
+        "error: a-invalid-tags.md: waymark.tags: " +
+        "Every tag must be a non-empty string.\n" +
+        'error: a-invalid-tags.md: waymark.tags: Undeclared tag "missing".\n' +
+        "error: b-scalar-metadata.md: waymark: Expected a mapping.\n",
+    );
+  },
+);
+
+integrationTest(
   "status uses the outer root and rejects a nested configuration",
   async ({ temporaryRepositoryPath: repositoryPath }) => {
     const nestedPath = join(repositoryPath, "packages", "example");
@@ -452,6 +539,10 @@ integrationTest(
     });
 
     expect(result.status).toBe(1);
+    const canonicalRepositoryPath = await realpath(repositoryPath);
+    expect(result.stdout).toBe(
+      `Root: ${canonicalRepositoryPath}\nStatus: invalid\n`,
+    );
     expect(result.stderr).toBe(
       "error: waymark.yaml: ignore.0: " +
         "Negation is not supported in ignore globs.\n" +
@@ -645,6 +736,10 @@ integrationTest(
     });
 
     expect(result.status).toBe(1);
+    const canonicalRepositoryPath = await realpath(repositoryPath);
+    expect(result.stdout).toBe(
+      `Root: ${canonicalRepositoryPath}\nStatus: invalid\n`,
+    );
     expect(result.stderr).toBe(
       "error: waymark.yaml: ignore.0: " +
         "Only *, ?, and ** wildcard syntax is supported.\n" +
