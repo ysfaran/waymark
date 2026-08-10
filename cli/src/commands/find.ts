@@ -74,31 +74,48 @@ export function createFindCommand(): Command {
       const shownFields = parseShownFields(options.show);
 
       const loadedConfiguration = await loadConfiguration(process.cwd());
-      if (loadedConfiguration.kind === "malformed") {
+      if (loadedConfiguration.kind === "invalid") {
         throwDiagnostics(loadedConfiguration.diagnostics);
       }
 
       const { configuration, rootPath } = loadedConfiguration;
+      const metadataCriteria =
+        options.filter === undefined
+          ? {
+              method: "filter-groups" as const,
+              kinds: parseIdentifierOptions({
+                optionName: "--kinds",
+                values: options.kinds,
+                declarations: configuration.kinds,
+                declarationName: "kind",
+              }),
+              tags: parseIdentifierOptions({
+                optionName: "--tags",
+                values: options.tags,
+                declarations: configuration.tags,
+                declarationName: "tag",
+              }),
+              requiredTags: parseIdentifierOptions({
+                optionName: "--require-tags",
+                values: options.requireTags,
+                declarations: configuration.tags,
+                declarationName: "tag",
+              }),
+            }
+          : {
+              method: "filter-expression" as const,
+              expression: options.filter,
+            };
       const documentScan = await scanDocuments({ rootPath, configuration });
-      const diagnostics = [
-        ...loadedConfiguration.diagnostics,
-        ...(documentScan.kind === "invalid" ? documentScan.diagnostics : []),
-      ].sort(compareDiagnostics);
-      if (
-        loadedConfiguration.diagnostics.length > 0 ||
-        documentScan.kind === "invalid"
-      ) {
-        throwDiagnostics(diagnostics);
+      if (documentScan.kind === "invalid") {
+        throwDiagnostics(documentScan.diagnostics.sort(compareDiagnostics));
       }
 
       const matchingDocuments = filterDocuments({
         documents: documentScan.documents,
         configuration,
         criteria: {
-          kinds: options.kinds,
-          tags: options.tags,
-          requiredTags: options.requireTags,
-          filter: options.filter,
+          metadata: metadataCriteria,
           query: options.query,
         },
       });
@@ -272,6 +289,39 @@ function createTreeDirectory(): TreeDirectory {
 
 function collectOptionValue(value: string, previous: string[]): string[] {
   return [...previous, value];
+}
+
+function parseIdentifierOptions({
+  optionName,
+  values,
+  declarations,
+  declarationName,
+}: {
+  optionName: string;
+  values: string[];
+  declarations: Map<string, unknown>;
+  declarationName: "kind" | "tag";
+}): Set<string> {
+  const identifiers = new Set<string>();
+  for (const value of values) {
+    for (const identifier of value.split(",")) {
+      if (identifier === "") {
+        throw new Error(`${optionName} contains an empty identifier.`);
+      }
+      if (identifiers.has(identifier)) {
+        throw new Error(
+          `${optionName} contains duplicate identifier "${identifier}".`,
+        );
+      }
+      if (!declarations.has(identifier)) {
+        throw new Error(
+          `${optionName} contains undeclared ${declarationName} "${identifier}".`,
+        );
+      }
+      identifiers.add(identifier);
+    }
+  }
+  return identifiers;
 }
 
 function compareText(left: string, right: string): number {
