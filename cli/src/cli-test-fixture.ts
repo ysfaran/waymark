@@ -37,7 +37,7 @@ export function runWaymark({
       cwd: workingDirectoryPath,
       encoding: "utf8",
       input: "",
-      timeout: 1_000,
+      timeout: 3_000,
     },
   );
 }

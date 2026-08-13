@@ -1,0 +1,100 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="960"
+  height="560"
+  viewBox="0 0 960 560"
+  role="img"
+  aria-labelledby="title description"
+>
+  <title id="title">Where Waymark fits</title>
+  <desc id="description">
+    A chart comparing documentation approaches by setup and operational
+    complexity and the effort required to find relevant context. A big index
+    and linked navigation require more effort from the agent. Waymark reduces
+    that effort at low complexity. RAG and MCP-backed retrieval reduce it
+    further with higher complexity.
+  </desc>
+
+  <style>
+    .surface { fill: #0f172a; }
+    .plot { fill: #111c30; stroke: #475569; }
+    .sweet-spot { fill: #123326; }
+    .grid { stroke: #273449; }
+    .axis { stroke: #94a3b8; }
+    .axis-label { fill: #cbd5e1; }
+    .heading { fill: #f8fafc; }
+    .muted { fill: #94a3b8; }
+    .card { fill: #1e293b; stroke: #475569; }
+    .waymark-card { fill: #123326; stroke: #4ade80; }
+    .standard-dot { fill: #94a3b8; }
+    .retrieval-dot { fill: #818cf8; }
+    .waymark-dot { fill: #4ade80; }
+    .waymark-ring { fill: none; stroke: #166534; }
+
+    text {
+      font-family:
+        Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", sans-serif;
+    }
+  </style>
+
+  <rect class="surface" width="960" height="560" />
+
+  <text class="heading" x="48" y="45" font-size="22" font-weight="700">
+    Where Waymark fits
+  </text>
+  <text class="muted" x="48" y="69" font-size="14">
+    Get the right repository context without building retrieval infrastructure.
+  </text>
+
+  <rect class="plot" x="112" y="94" width="800" height="370" rx="16" />
+  <path
+    class="sweet-spot"
+    d="M128 110h392v170H128a16 16 0 0 1-16-16V126a16 16 0 0 1 16-16Z"
+  />
+  <text class="muted" x="136" y="136" font-size="12" font-weight="700" letter-spacing="1">
+    SWEET SPOT
+  </text>
+
+  <line class="grid" x1="112" y1="279" x2="912" y2="279" />
+  <line class="grid" x1="512" y1="94" x2="512" y2="464" />
+
+  <line class="axis" x1="112" y1="464" x2="912" y2="464" stroke-width="2" />
+  <path class="axis" d="m902 458 10 6-10 6" fill="none" stroke-width="2" />
+  <line class="axis" x1="112" y1="464" x2="112" y2="94" stroke-width="2" />
+  <path class="axis" d="m106 104 6-10 6 10" fill="none" stroke-width="2" />
+
+  <text class="axis-label" x="512" y="522" font-size="14" font-weight="600" text-anchor="middle">
+    Setup &amp; operational complexity
+  </text>
+  <text class="muted" x="112" y="489" font-size="12">LOW</text>
+  <text class="muted" x="912" y="489" font-size="12" text-anchor="end">HIGH</text>
+
+  <text class="axis-label" x="24" y="279" font-size="14" font-weight="600" text-anchor="middle" transform="rotate(-90 24 279)">
+    Effort to find relevant context
+  </text>
+  <text class="muted" x="96" y="105" font-size="12" text-anchor="end">LESS</text>
+  <text class="muted" x="96" y="460" font-size="12" text-anchor="end">MORE</text>
+
+  <circle class="waymark-ring" cx="352" cy="215" r="25" stroke-width="8" opacity="0.7" />
+  <circle class="waymark-dot" cx="352" cy="215" r="11" />
+  <rect class="waymark-card" x="378" y="177" width="218" height="76" rx="12" stroke-width="2" />
+  <text class="heading" x="396" y="205" font-size="17" font-weight="700">Waymark</text>
+  <text class="muted" x="396" y="227" font-size="13">Relevant paths before files open</text>
+  <text class="muted" x="396" y="244" font-size="12">Offline · deterministic · lightweight</text>
+
+  <circle class="retrieval-dot" cx="746" cy="125" r="9" />
+  <rect class="card" x="650" y="139" width="236" height="58" rx="10" />
+  <text class="heading" x="668" y="163" font-size="14" font-weight="700">Retrieval infrastructure</text>
+  <text class="muted" x="668" y="183" font-size="12">RAG / MCP-backed retrieval</text>
+
+  <circle class="standard-dot" cx="382" cy="342" r="9" />
+  <rect class="card" x="296" y="361" width="222" height="58" rx="10" />
+  <text class="heading" x="314" y="385" font-size="14" font-weight="700">Linked navigation files</text>
+  <text class="muted" x="314" y="405" font-size="12">Agent follows the navigation</text>
+
+  <circle class="standard-dot" cx="208" cy="398" r="9" />
+  <rect class="card" x="134" y="317" width="174" height="58" rx="10" />
+  <text class="heading" x="152" y="341" font-size="14" font-weight="700">One big index</text>
+  <text class="muted" x="152" y="361" font-size="12">Agent scans the index</text>
+</svg>

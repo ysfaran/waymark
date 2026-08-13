@@ -1,14 +1,16 @@
 # 🪧 Waymark
 
-Find the right repository docs for your coding agent.
+[![npm version](https://img.shields.io/npm/v/waymark-docs.svg)](https://www.npmjs.com/package/waymark-docs)
 
-Waymark is a small, offline-first CLI built for AI agents. Add structured
-frontmatter to Markdown or MDX files, then let the agent select the kinds and
-tags relevant to its task. Waymark returns deterministic matches without
-ranking results or maintaining an index.
+Waymark is a small, offline-first CLI that helps coding agents find the right
+repository docs for each task. Add structured frontmatter to existing Markdown
+or MDX files, and agents can discover only relevant paths before opening a
+document—without reading a large index or following linked navigation files
+that load unrelated context. It is as easy to set up as file-based navigation,
+but remains deterministic and token-efficient; unlike RAG or MCP-backed
+retrieval, it needs no ranking, maintained index, or retrieval infrastructure.
 
-This makes documentation discovery token-efficient: agents spend less time
-searching unrelated files and more time working with the context they need.
+![Waymark reduces the effort required to find relevant context without retrieval infrastructure.](https://raw.githubusercontent.com/ysfaran/waymark/main/docs/assets/why-waymark.svg)
 
 ## Table of contents
 
