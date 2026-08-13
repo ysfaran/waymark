@@ -2,6 +2,13 @@
 
 All notable changes to Waymark are documented in this file.
 
+## [0.2.1](https://github.com/ysfaran/waymark/compare/v0.2.0...v0.2.1) (2026-08-13)
+
+
+### Documentation
+
+* **readme:** explain where Waymark fits ([ffe25dc](https://github.com/ysfaran/waymark/commit/ffe25dc15f1651519ad34e9e67f7fee90c69ef62))
+
 ## [0.2.0](https://github.com/ysfaran/waymark/compare/v0.1.1...v0.2.0) (2026-08-03)
 
 
