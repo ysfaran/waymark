@@ -12,7 +12,7 @@ export function createStatusCommand(): Command {
     .description("Validate and summarize the Waymark repository")
     .option(
       "-s, --show <fields>",
-      "Show declared kind and tag details (kind,tags)",
+      "show declared kind and tag details (kind,tags)",
     )
     .action(async (options: { show?: string }) => {
       const shownFields = parseShownFields(options.show);
