@@ -2,6 +2,13 @@
 
 All notable changes to Waymark are documented in this file.
 
+## [0.2.2](https://github.com/ysfaran/waymark/compare/v0.2.1...v0.2.2) (2026-09-18)
+
+
+### Bug Fixes
+
+* **cli:** align help text with documentation ([#10](https://github.com/ysfaran/waymark/issues/10)) ([dbabc14](https://github.com/ysfaran/waymark/commit/dbabc14244d775cc8a38166d11a386674e282610))
+
 ## [0.2.1](https://github.com/ysfaran/waymark/compare/v0.2.0...v0.2.1) (2026-08-13)
 
 
