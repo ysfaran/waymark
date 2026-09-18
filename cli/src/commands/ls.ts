@@ -14,9 +14,12 @@ type LsOptions = {
 export function createLsCommand(): Command {
   return new Command("ls")
     .description("Inventory document registration in a directory")
-    .argument("[directory]", "Directory to inspect")
-    .option("-R, --recursive", "Inspect directories recursively")
-    .option("-u, --unregistered", "List only Unregistered Documents")
+    .argument(
+      "[directory]",
+      "directory to inspect (defaults to the current directory)",
+    )
+    .option("-R, --recursive", "inspect directories recursively")
+    .option("-u, --unregistered", "list only unregistered documents")
     .action(async (directory: string | undefined, options: LsOptions) => {
       const loadedConfiguration = await loadConfiguration(process.cwd());
       if (loadedConfiguration.kind === "invalid") {

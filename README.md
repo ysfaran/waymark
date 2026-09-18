@@ -5,10 +5,10 @@
 Waymark is a small, offline-first CLI that helps coding agents find the right
 repository docs for each task. Add structured frontmatter to existing Markdown
 or MDX files, and agents can discover only relevant paths before opening a
-document—without reading a large index or following linked navigation files
+document without reading a large index or following linked navigation files
 that load unrelated context. It is as easy to set up as file-based navigation,
 but remains deterministic and token-efficient; unlike RAG or MCP-backed
-retrieval, it needs no ranking, maintained index, or retrieval infrastructure.
+retrieval, it needs no ranking, maintained index or retrieval infrastructure.
 
 ![Waymark reduces the effort required to find relevant context without retrieval infrastructure.](https://raw.githubusercontent.com/ysfaran/waymark/main/docs/assets/why-waymark.svg)
 
@@ -37,7 +37,7 @@ npm install --save-dev waymark-docs
 
 ## Quick start
 
-1. **Create a Waymark configuration.**
+1. **Create a Waymark configuration**
 
    Run `init` in the repository root:
 
@@ -45,7 +45,7 @@ npm install --save-dev waymark-docs
    npx waymark init
    ```
 
-2. **Define searchable metadata.**
+2. **Define searchable metadata**
 
    Add the document kinds and tags that agents can search:
 
@@ -55,11 +55,11 @@ npm install --save-dev waymark-docs
      convention: Read before changing code to follow required repository practices
 
    tags:
-     architecture: System boundaries, component relationships, and dependencies
+     architecture: System boundaries, component relationships and dependencies
      typescript: TypeScript-related documentation
    ```
 
-3. **Register a document.**
+3. **Register a document**
 
    Add Waymark metadata to a Markdown or MDX file. For example, save this as
    `docs/conventions/typescript.md`:
@@ -73,7 +73,7 @@ npm install --save-dev waymark-docs
    # TypeScript conventions
    ```
 
-4. **Validate the repository.**
+4. **Validate the repository**
 
    Check the configuration and discovered documents:
 
@@ -90,16 +90,29 @@ npm install --save-dev waymark-docs
    Tags: 2
    ```
 
-5. **Discover the document.**
+5. **Discover documents**
 
-   Find the registered convention by kind and tag:
+   For a quick check, run `npx waymark find` with relevant kind and tag filters:
 
    ```sh
    npx waymark find --kinds convention --tags typescript --show description
    ```
 
    ```text
-   docs/conventions/typescript.md — TypeScript conventions for this repository
+   docs/conventions/typescript.md: TypeScript conventions for this repository
+   ```
+
+   To have agents use Waymark continuously, add this to `AGENTS.md`,
+   `CLAUDE.md` or an equivalent file:
+
+   ```md
+   ## Context Discovery
+
+   Before working on a non-trivial task, run `npx waymark status --show kind,tags`,
+   then use `npx waymark find` with relevant comma-separated `--kinds` and
+   `--tags` values, using `--show kind,tags,description` to inspect results.
+   Use `--query` for literal text searches and `--filter` for boolean expressions
+   over metadata when you need more detailed results.
    ```
 
 Waymark uses `waymark.yml` by default and also recognizes `waymark.yaml`. It
@@ -124,8 +137,10 @@ Create a starter configuration in the current directory.
 ```text
 Usage: waymark init [options]
 
+Create a starter Waymark configuration
+
 Options:
-  -h, --help  Display help for the command
+  -h, --help  display help for command
 ```
 
 ```sh
@@ -154,7 +169,7 @@ ignore:
   - vendor/**
 ```
 
-Ignore patterns are relative to the repository root and support `*`, `?`, and
+Ignore patterns are relative to the repository root and support `*`, `?` and
 `**` wildcards. Waymark also honors `.gitignore` automatically.
 
 `init` never overwrites an existing configuration and does not allow a nested
@@ -164,15 +179,17 @@ configuration beneath another Waymark root.
 
 Validate the Waymark configuration and all discovered Waymark Documents, then
 print the repository root and counts for registered documents, unregistered
-documents, kinds, and tags. Invalid repositories produce diagnostics and a
+documents, kinds and tags. Invalid repositories produce diagnostics and a
 non-zero exit code, which makes this command suitable for CI.
 
 ```text
 Usage: waymark status [options]
 
+Validate and summarize the Waymark repository
+
 Options:
-  -s, --show <fields>  Show declared kind and tag details (kind,tags)
-  -h, --help           Display help for the command
+  -s, --show <fields>  show declared kind and tag details (kind,tags)
+  -h, --help           display help for command
 ```
 
 Validate the repository:
@@ -201,16 +218,21 @@ Find registered Waymark Documents across the repository. With no filters,
 ```text
 Usage: waymark find [options]
 
+Discover Waymark Documents
+
 Options:
-  -k, --kinds <identifiers>         Match any kind (comma-separated, repeatable)
-  -t, --tags <identifiers>          Match any tag (comma-separated, repeatable)
-  -T, --require-tags <identifiers>  Require every tag (comma-separated, repeatable)
-  -f, --filter <expression>         Match a Boolean metadata filter
-  -q, --query <text>                Match a literal content query
-  -s, --show <fields>               Show kind, tags, and description
-  --json                            Return a flat JSON array
-  --tree                            Return a directory tree
-  -h, --help                        Display help for the command
+  -k, --kinds <identifiers>         match any kind (comma-separated, repeatable)
+  -t, --tags <identifiers>          match any tag (comma-separated, repeatable)
+  -T, --require-tags <identifiers>  require every tag (comma-separated,
+                                    repeatable)
+  -f, --filter <expression>         match a boolean filter expression
+  -q, --query <text>                match literal text content
+                                    (case-insensitive)
+  -s, --show <fields>               show kind, tags and description
+                                    (comma-separated)
+  --json                            return a flat JSON array
+  --tree                            output documents as directory tree
+  -h, --help                        display help for command
 ```
 
 Simple filter values use OR within an option. Different options combine with
@@ -232,20 +254,20 @@ npx waymark find --kinds adr --kinds convention
 ```
 
 Use `--query` for a case-insensitive literal search of document bodies. It can
-be combined with either simple or Boolean metadata filters:
+be combined with either simple or boolean metadata filters:
 
 ```sh
 npx waymark find --kinds convention --query "dependency injection"
 ```
 
-Use `--filter` for advanced metadata expressions with `kind:`, `tag:`, `NOT`,
-`AND`, `OR`, and parentheses:
+Use `--filter` for advanced boolean expressions over metadata with `kind:`,
+`tag:`, `NOT`, `AND`, `OR` and parentheses:
 
 ```sh
 npx waymark find --filter '(kind:adr OR kind:convention) AND tag:typescript AND NOT tag:architecture'
 ```
 
-`--filter` cannot be combined with `--kinds`, `--tags`, or `--require-tags`.
+`--filter` cannot be combined with `--kinds`, `--tags` or `--require-tags`.
 
 Add metadata fields to the default line-oriented output with `--show`:
 
@@ -277,13 +299,15 @@ Paths are returned relative to the repository root in deterministic order.
 ```text
 Usage: waymark ls [options] [directory]
 
+Inventory document registration in a directory
+
 Arguments:
-  directory           Directory to inspect (defaults to the current directory)
+  directory           directory to inspect (defaults to the current directory)
 
 Options:
-  -R, --recursive     Inspect directories recursively
-  -u, --unregistered  List only unregistered documents
-  -h, --help          Display help for the command
+  -R, --recursive     inspect directories recursively
+  -u, --unregistered  list only unregistered documents
+  -h, --help          display help for command
 ```
 
 List registered documents directly inside `docs`:
@@ -304,16 +328,12 @@ Find Markdown and MDX files that are missing Waymark metadata:
 npx waymark ls -R --unregistered docs
 ```
 
-`ls` respects `.gitignore`, Waymark ignore patterns, and Git directory boundaries.
+`ls` respects `.gitignore`, Waymark ignore patterns and Git directory boundaries.
 The selected directory must be inside the repository root.
 
 ### `waymark help`
 
 Show the command list or detailed help for one command:
-
-```text
-Usage: waymark help [command]
-```
 
 ```sh
 npx waymark --help

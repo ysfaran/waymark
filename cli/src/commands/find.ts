@@ -9,9 +9,9 @@ import {
 } from "../documents/index.js";
 
 type FindOptions = {
-  kinds: string[];
-  tags: string[];
-  requireTags: string[];
+  kinds?: string[];
+  tags?: string[];
+  requireTags?: string[];
   filter?: string;
   query?: string;
   show?: string;
@@ -33,36 +33,37 @@ export function createFindCommand(): Command {
     .description("Discover Waymark Documents")
     .option(
       "-k, --kinds <identifiers>",
-      "Match any Document Kind (comma-separated, repeatable)",
+      "match any kind (comma-separated, repeatable)",
       collectOptionValue,
-      [],
     )
     .option(
       "-t, --tags <identifiers>",
-      "Match any Document Tag (comma-separated, repeatable)",
+      "match any tag (comma-separated, repeatable)",
       collectOptionValue,
-      [],
     )
     .option(
       "-T, --require-tags <identifiers>",
-      "Require every Document Tag (comma-separated, repeatable)",
+      "require every tag (comma-separated, repeatable)",
       collectOptionValue,
-      [],
     )
-    .option("-f, --filter <expression>", "Match a Boolean Metadata Filter")
-    .option("-q, --query <text>", "Match a literal Content Query")
+    .option("-f, --filter <expression>", "match a boolean filter expression")
+    .option(
+      "-q, --query <text>",
+      "match literal text content (case-insensitive)",
+    )
     .option(
       "-s, --show <fields>",
-      "Show kind, tags, and description (comma-separated)",
+      "show kind, tags and description (comma-separated)",
     )
-    .option("--json", "Return a flat JSON array")
-    .option("--tree", "Return a directory-tree presentation")
+    .option("--json", "return a flat JSON array")
+    .option("--tree", "output documents as directory tree")
     .action(async (options: FindOptions) => {
+      const kinds = options.kinds ?? [];
+      const tags = options.tags ?? [];
+      const requiredTags = options.requireTags ?? [];
       if (
         options.filter !== undefined &&
-        (options.kinds.length > 0 ||
-          options.tags.length > 0 ||
-          options.requireTags.length > 0)
+        (kinds.length > 0 || tags.length > 0 || requiredTags.length > 0)
       ) {
         throw new Error(
           "--filter cannot be combined with --kinds, --tags, or --require-tags.",
@@ -85,19 +86,19 @@ export function createFindCommand(): Command {
               method: "filter-groups" as const,
               kinds: parseIdentifierOptions({
                 optionName: "--kinds",
-                values: options.kinds,
+                values: kinds,
                 declarations: configuration.kinds,
                 declarationName: "kind",
               }),
               tags: parseIdentifierOptions({
                 optionName: "--tags",
-                values: options.tags,
+                values: tags,
                 declarations: configuration.tags,
                 declarationName: "tag",
               }),
               requiredTags: parseIdentifierOptions({
                 optionName: "--require-tags",
-                values: options.requireTags,
+                values: requiredTags,
                 declarations: configuration.tags,
                 declarationName: "tag",
               }),
@@ -287,8 +288,11 @@ function createTreeDirectory(): TreeDirectory {
   };
 }
 
-function collectOptionValue(value: string, previous: string[]): string[] {
-  return [...previous, value];
+function collectOptionValue(
+  value: string,
+  previous: string[] | undefined,
+): string[] {
+  return [...(previous ?? []), value];
 }
 
 function parseIdentifierOptions({
