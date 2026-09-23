@@ -10,6 +10,12 @@ that load unrelated context. It is as easy to set up as file-based navigation,
 but remains deterministic and token-efficient; unlike RAG or MCP-backed
 retrieval, it needs no ranking, maintained index or retrieval infrastructure.
 
+Each document has three searchable metadata dimensions:
+
+1. **Scope:** Where does this document apply? (`backend`, `search-service`)
+2. **Kind:** What role does this document serve? (`convention`, `agent-guide`, `adr`)
+3. **Tags:** What topics does it cover? (`testing`, `architecture`)
+
 ![Waymark reduces the effort required to find relevant context without retrieval infrastructure.](https://raw.githubusercontent.com/ysfaran/waymark/main/docs/assets/why-waymark.svg)
 
 ## Table of contents
