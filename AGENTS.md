@@ -5,7 +5,7 @@
 Use the local Waymark CLI before exploring or changing the repository:
 
 ```sh
-pnpm --filter waymark-docs dev status --show kind,tags
+pnpm --filter waymark-docs dev show
 pnpm --filter waymark-docs dev find --kinds agent-guide --tags agents --show description
 ```
 

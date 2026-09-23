@@ -7,6 +7,14 @@ const rawFrontmatterSchema = z.record(z.string(), z.unknown());
 
 type RawFrontmatter = z.infer<typeof rawFrontmatterSchema>;
 
+type DocumentRegistrationPolicy = {
+  requireNamespace: boolean;
+  requireScopes: boolean;
+  declaredScopes: Map<string, ConfigurationDeclaration>;
+  declaredKinds: Map<string, ConfigurationDeclaration>;
+  declaredTags: Map<string, ConfigurationDeclaration>;
+};
+
 type ClassifiedDocument = z.infer<ReturnType<typeof createDocumentSchema>> & {
   body: string;
 };
@@ -24,15 +32,11 @@ type DocumentClassification =
 
 export function classifyDocument({
   source,
-  requireNamespace,
-  declaredKinds,
-  declaredTags,
+  registrationPolicy,
   path,
 }: {
   source: string;
-  requireNamespace: boolean;
-  declaredKinds: Map<string, ConfigurationDeclaration>;
-  declaredTags: Map<string, ConfigurationDeclaration>;
+  registrationPolicy: DocumentRegistrationPolicy;
   path: string;
 }): DocumentClassification {
   const frontmatter = readFrontmatter(source);
@@ -58,9 +62,7 @@ export function classifyDocument({
   return validateRegistration({
     frontmatter: frontmatterResult.data,
     body: frontmatter.body,
-    requireNamespace,
-    declaredKinds,
-    declaredTags,
+    registrationPolicy,
     path,
   });
 }
@@ -92,18 +94,21 @@ function readFrontmatter(
 function validateRegistration({
   frontmatter,
   body,
-  requireNamespace,
-  declaredKinds,
-  declaredTags,
+  registrationPolicy,
   path,
 }: {
   frontmatter: RawFrontmatter;
   body: string;
-  requireNamespace: boolean;
-  declaredKinds: Map<string, ConfigurationDeclaration>;
-  declaredTags: Map<string, ConfigurationDeclaration>;
+  registrationPolicy: DocumentRegistrationPolicy;
   path: string;
 }): DocumentClassification {
+  const {
+    requireNamespace,
+    requireScopes,
+    declaredScopes,
+    declaredKinds,
+    declaredTags,
+  } = registrationPolicy;
   const hasNamespace = Object.hasOwn(frontmatter, "waymark");
   const hasRecognizedFlatMetadata =
     Object.hasOwn(frontmatter, "kind") &&
@@ -133,10 +138,13 @@ function validateRegistration({
     : {
         kind: frontmatter.kind,
         description: frontmatter.description,
+        scopes: frontmatter.scopes,
         tags: frontmatter.tags,
       };
   const fieldPrefix = namespaced ? "waymark." : "";
   const metadataResult = createDocumentSchema({
+    requireScopes,
+    declaredScopes,
     declaredKinds,
     declaredTags,
   }).safeParse(value);
@@ -159,9 +167,13 @@ function validateRegistration({
 }
 
 function createDocumentSchema({
+  requireScopes,
+  declaredScopes,
   declaredKinds,
   declaredTags,
 }: {
+  requireScopes: boolean;
+  declaredScopes: Map<string, ConfigurationDeclaration>;
   declaredKinds: Map<string, ConfigurationDeclaration>;
   declaredTags: Map<string, ConfigurationDeclaration>;
 }) {
@@ -195,6 +207,45 @@ function createDocumentSchema({
         .refine((description) => description.trim() !== "", {
           error: "Document Description must be a non-empty string.",
         }),
+      scopes: z
+        .array(z.unknown(), { error: "Expected a YAML sequence of scopes." })
+        .default([])
+        .superRefine((scopes, context) => {
+          if (requireScopes && scopes.length === 0) {
+            context.addIssue({
+              code: "custom",
+              message: "At least one scope is required.",
+            });
+          }
+
+          const seenScopes = new Set<string>();
+          for (const scope of scopes) {
+            if (typeof scope !== "string" || scope.trim() === "") {
+              context.addIssue({
+                code: "custom",
+                message: "Every scope must be a non-empty string.",
+              });
+              continue;
+            }
+            if (seenScopes.has(scope)) {
+              context.addIssue({
+                code: "custom",
+                message: `Duplicate scope "${scope}".`,
+              });
+              continue;
+            }
+            seenScopes.add(scope);
+            if (!declaredScopes.has(scope)) {
+              context.addIssue({
+                code: "custom",
+                message: `Undeclared scope "${scope}".`,
+              });
+            }
+          }
+        })
+        .transform((scopes): string[] =>
+          scopes.filter((scope): scope is string => typeof scope === "string"),
+        ),
       tags: z
         .array(z.unknown(), { error: "Expected a YAML sequence of tags." })
         .default([])

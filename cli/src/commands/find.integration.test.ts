@@ -99,6 +99,58 @@ integrationTest(
 );
 
 integrationTest(
+  "find matches any selected scope and combines scopes with other simple filters using AND",
+  async ({ temporaryRepositoryPath: repositoryPath }) => {
+    await writeFile(
+      join(repositoryPath, "waymark.yaml"),
+      "scopes:\n" +
+        "  backend: Backend\n" +
+        "  search-service: Search service\n" +
+        "kinds:\n" +
+        "  adr: Architecture decisions\n" +
+        "  guide: Guides\n" +
+        "tags: {}\n",
+      "utf8",
+    );
+    const documents = [
+      ["a.md", "adr", "[backend]"],
+      ["b.md", "guide", "[search-service]"],
+      ["c.md", "guide", "[]"],
+      ["d.md", "guide", "[backend, search-service]"],
+    ] as const;
+    for (const [path, kind, scopes] of documents) {
+      await writeFile(
+        join(repositoryPath, path),
+        `---\nkind: ${kind}\ndescription: ${path}\nscopes: ${scopes}\n---\n`,
+        "utf8",
+      );
+    }
+
+    const scopesResult = runWaymark({
+      arguments: ["find", "--scopes", "backend,search-service"],
+      workingDirectoryPath: repositoryPath,
+    });
+    const combinedResult = runWaymark({
+      arguments: ["find", "--scopes", "backend", "--kinds", "guide"],
+      workingDirectoryPath: repositoryPath,
+    });
+    const unfilteredResult = runWaymark({
+      arguments: ["find"],
+      workingDirectoryPath: repositoryPath,
+    });
+
+    expect(scopesResult.status).toBe(0);
+    expect(scopesResult.stdout).toBe("a.md\nb.md\nd.md\n");
+    expect(scopesResult.stderr).toBe("");
+    expect(combinedResult.status).toBe(0);
+    expect(combinedResult.stdout).toBe("d.md\n");
+    expect(combinedResult.stderr).toBe("");
+    expect(unfilteredResult.status).toBe(0);
+    expect(unfilteredResult.stdout).toBe("a.md\nb.md\nc.md\nd.md\n");
+  },
+);
+
+integrationTest(
   "find evaluates an advanced Boolean Metadata Filter",
   async ({ temporaryRepositoryPath: repositoryPath }) => {
     await writeFile(
@@ -136,6 +188,49 @@ integrationTest(
 
     expect(result.status).toBe(0);
     expect(result.stdout).toBe("a.md\nb.md\n");
+    expect(result.stderr).toBe("");
+  },
+);
+
+integrationTest(
+  "find evaluates Document Scope predicates in an advanced Boolean Metadata Filter",
+  async ({ temporaryRepositoryPath: repositoryPath }) => {
+    await writeFile(
+      join(repositoryPath, "waymark.yaml"),
+      "scopes:\n" +
+        "  backend: Backend\n" +
+        "  search-service: Search service\n" +
+        "kinds:\n" +
+        "  guide: Guides\n" +
+        "tags: {}\n",
+      "utf8",
+    );
+    await writeFile(
+      join(repositoryPath, "backend.md"),
+      "---\nkind: guide\ndescription: Backend\nscopes: [backend]\n---\n",
+      "utf8",
+    );
+    await writeFile(
+      join(repositoryPath, "both.md"),
+      "---\n" +
+        "kind: guide\n" +
+        "description: Both\n" +
+        "scopes: [backend, search-service]\n" +
+        "---\n",
+      "utf8",
+    );
+
+    const result = runWaymark({
+      arguments: [
+        "find",
+        "--filter",
+        "scope:backend AND NOT scope:search-service",
+      ],
+      workingDirectoryPath: repositoryPath,
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toBe("backend.md\n");
     expect(result.stderr).toBe("");
   },
 );
@@ -197,6 +292,8 @@ integrationTest(
     await writeFile(
       join(repositoryPath, "waymark.yaml"),
       "require-namespace: false\n" +
+        "scopes:\n" +
+        "  backend: Backend\n" +
         "kinds:\n" +
         "  guide: Guides\n" +
         "tags:\n" +
@@ -211,12 +308,14 @@ integrationTest(
         "description: >\n" +
         "  First line\n" +
         "  second line\n" +
+        "scopes: [backend]\n" +
         "tags: [typescript, react]\n" +
         "---\n",
       "utf8",
     );
 
     const projections = [
+      ["scopes", "guide.md [backend]\n"],
       ["kind", "guide.md [guide]\n"],
       ["tags", "guide.md [typescript,react]\n"],
       ["description", "guide.md — First line second line\n"],
@@ -227,8 +326,8 @@ integrationTest(
         "guide.md [typescript,react] — First line second line\n",
       ],
       [
-        "description,tags,kind",
-        "guide.md [guide] [typescript,react] — First line second line\n",
+        "description,tags,kind,scopes",
+        "guide.md [backend] [guide] [typescript,react] — First line second line\n",
       ],
     ] as const;
 
@@ -251,6 +350,8 @@ integrationTest(
     await writeFile(
       join(repositoryPath, "waymark.yaml"),
       "require-namespace: false\n" +
+        "scopes:\n" +
+        "  backend: Backend\n" +
         "kinds:\n" +
         "  guide: Guides\n" +
         "tags:\n" +
@@ -259,7 +360,7 @@ integrationTest(
     );
     await writeFile(
       join(repositoryPath, "z.md"),
-      "---\nkind: guide\ndescription: Last\ntags: [react]\n---\n",
+      "---\nkind: guide\ndescription: Last\nscopes: [backend]\ntags: [react]\n---\n",
       "utf8",
     );
     await writeFile(
@@ -275,14 +376,24 @@ integrationTest(
     );
 
     const result = runWaymark({
-      arguments: ["find", "--json", "--show", "description,kind"],
+      arguments: ["find", "--json", "--show", "description,kind,scopes"],
       workingDirectoryPath: repositoryPath,
     });
 
     expect(result.status).toBe(0);
     expect(JSON.parse(result.stdout)).toEqual([
-      { path: "a.md", kind: "guide", description: "First\nsecond\n" },
-      { path: "z.md", kind: "guide", description: "Last" },
+      {
+        path: "a.md",
+        scopes: [],
+        kind: "guide",
+        description: "First\nsecond\n",
+      },
+      {
+        path: "z.md",
+        scopes: ["backend"],
+        kind: "guide",
+        description: "Last",
+      },
     ]);
     expect(result.stderr).toBe("");
   },
@@ -459,7 +570,7 @@ integrationTest(
   "find rejects incompatible filter and output options",
   async ({ temporaryRepositoryPath: repositoryPath }) => {
     const filterResult = runWaymark({
-      arguments: ["find", "--filter", "kind:guide", "--kinds", "guide"],
+      arguments: ["find", "--filter", "kind:guide", "--scopes", "backend"],
       workingDirectoryPath: repositoryPath,
     });
     const outputResult = runWaymark({
@@ -470,7 +581,7 @@ integrationTest(
     expect(filterResult.status).toBe(1);
     expect(filterResult.stdout).toBe("");
     expect(filterResult.stderr).toBe(
-      "error: --filter cannot be combined with --kinds, --tags, or --require-tags.\n",
+      "error: --filter cannot be combined with --scopes, --kinds, --tags, or --require-tags.\n",
     );
     expect(outputResult.status).toBe(1);
     expect(outputResult.stdout).toBe("");

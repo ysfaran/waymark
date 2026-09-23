@@ -29,8 +29,13 @@ _Avoid_: Invalid document, missing document
 **Waymark Metadata**:
 The frontmatter declaration that opts a Markdown file into document discovery
 and describes how coding agents can select it. It identifies one document kind,
-provides a description, and may add tags.
+provides a description, and may add scopes and tags.
 _Avoid_: Document attributes, index fields
+
+**Document Scope**:
+An optional part of a repository to which a Waymark Document applies. A
+document may apply to multiple scopes regardless of where its file is stored.
+_Avoid_: Document location, directory
 
 **Document Kind**:
 The single primary role of a Waymark Document, expressing why a coding agent
@@ -54,5 +59,5 @@ _Avoid_: Full-text search, semantic query
 
 **Metadata Filter**:
 Explicit criteria supplied by a coding agent to select Waymark Documents by
-Document Kind and Document Tag.
+Document Scope, Document Kind, and Document Tag.
 _Avoid_: Relevance query, search prompt

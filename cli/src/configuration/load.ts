@@ -85,6 +85,15 @@ const configurationSchema = z
       "require-namespace": z
         .boolean({ error: "Expected a boolean." })
         .default(false),
+      "require-scopes": z
+        .boolean({ error: "Expected a boolean." })
+        .default(false),
+      scopes: configurationDeclarationsSchema
+        .optional()
+        .transform(
+          (declarations) =>
+            declarations ?? new Map<string, ConfigurationDeclaration>(),
+        ),
       kinds: configurationDeclarationsSchema,
       tags: configurationDeclarationsSchema,
       ignore: z
@@ -97,6 +106,8 @@ const configurationSchema = z
   )
   .transform((configuration) => ({
     requireNamespace: configuration["require-namespace"],
+    requireScopes: configuration["require-scopes"],
+    scopes: configuration.scopes,
     kinds: configuration.kinds,
     tags: configuration.tags,
     ignorePatterns: configuration.ignore,

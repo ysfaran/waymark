@@ -20,15 +20,16 @@ integrationTest(
         "Discover repository documentation deterministically\n" +
         "\n" +
         "Options:\n" +
-        "  -V, --version             output the version number\n" +
-        "  -h, --help                display help for command\n" +
+        "  -V, --version              output the version number\n" +
+        "  -h, --help                 display help for command\n" +
         "\n" +
         "Commands:\n" +
-        "  init                      Create a starter Waymark configuration\n" +
-        "  status [options]          Validate and summarize the Waymark repository\n" +
-        "  find [options]            Discover Waymark Documents\n" +
-        "  ls [options] [directory]  Inventory document registration in a directory\n" +
-        "  help [command]            display help for command\n",
+        "  init                       Create a starter Waymark configuration\n" +
+        "  status                     Validate and summarize the Waymark repository\n" +
+        "  show [options] [category]  List declared scopes, kinds, and tags\n" +
+        "  find [options]             Discover Waymark Documents\n" +
+        "  ls [options] [directory]   Inventory document registration in a directory\n" +
+        "  help [command]             display help for command\n",
     );
     expect(result.stderr).toBe("");
     await expect(readdir(temporaryRepositoryPath)).resolves.toEqual([]);

@@ -34,6 +34,10 @@ integrationTest(
     ).resolves.toBe(
       "# When true, document metadata must be nested under a `waymark` frontmatter key.\n" +
         "require-namespace: false\n" +
+        "# When true, every Waymark Document must declare at least one scope.\n" +
+        "require-scopes: false\n" +
+        "scopes:\n" +
+        "  example-scope: Explain the repository area represented by this scope\n" +
         "kinds:\n" +
         "  example-kind: Explain when agents should read this kind of document\n" +
         "tags:\n" +
