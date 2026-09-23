@@ -5,17 +5,14 @@ import {
   type ConfigurationDeclaration,
 } from "../configuration/index.js";
 import { throwDiagnostics } from "../diagnostics.js";
-import { scanDocuments, type WaymarkDocument } from "../documents/index.js";
 import {
-  createUsageCounts,
-  incrementUsageCount,
-} from "../documents/usage-counts.js";
-import {
-  collectOptionValue,
-  parseIdentifierOptions,
-} from "./metadata-options.js";
+  countDocumentMetadataUsage,
+  scanDocuments,
+} from "../documents/index.js";
 
-type ShowCategory = "scopes" | "kinds" | "tags";
+const showCategories = ["scopes", "kinds", "tags"] as const;
+
+type ShowCategory = (typeof showCategories)[number];
 
 type ShowOptions = {
   scopes?: string[];
@@ -25,16 +22,14 @@ export function createShowCommand(): Command {
   return new Command("show")
     .description("List declared scopes, kinds, and tags")
     .addArgument(
-      new Argument("[category]", "list only scopes, kinds, or tags").choices([
-        "scopes",
-        "kinds",
-        "tags",
-      ]),
+      new Argument("[category]", "list only scopes, kinds, or tags").choices(
+        showCategories,
+      ),
     )
     .option(
       "--scopes <identifiers>",
       "select documents matching any scope (comma-separated, repeatable)",
-      collectOptionValue,
+      collectScopeOptionValue,
     )
     .action(
       async (category: ShowCategory | undefined, options: ShowOptions) => {
@@ -44,57 +39,47 @@ export function createShowCommand(): Command {
         }
 
         const { configuration, rootPath } = loadedConfiguration;
-        const selectedScopes = parseIdentifierOptions({
-          optionName: "--scopes",
+        const selectedScopes = parseScopeOptions({
           values: options.scopes ?? [],
           declarations: configuration.scopes,
-          declarationName: "scope",
         });
         const documentScan = await scanDocuments({ rootPath, configuration });
         if (documentScan.kind === "invalid") {
           throwDiagnostics(documentScan.diagnostics);
         }
 
-        const categories: ShowCategory[] = category
-          ? [category]
-          : ["scopes", "kinds", "tags"];
-        const selectedDocuments = selectDocumentsByScope(
-          documentScan.documents,
+        const categories = category ? [category] : showCategories;
+        const { kindUsageCounts, tagUsageCounts } = countDocumentMetadataUsage({
+          documents: documentScan.documents,
           selectedScopes,
-        );
-        const kindUsageCounts = countKindUsage(
-          configuration.kinds,
-          selectedDocuments,
-        );
-        const tagUsageCounts = countTagUsage(
-          configuration.tags,
-          selectedDocuments,
-        );
+          declaredKinds: configuration.kinds,
+          declaredTags: configuration.tags,
+        });
         const usedOnly = selectedScopes.size > 0;
 
         let output = "";
         for (const shownCategory of categories) {
           if (shownCategory === "scopes") {
-            output += renderDeclaredValues(
-              "Scopes",
-              configuration.scopes,
-              documentScan.scopeUsageCounts,
-              false,
-            );
+            output += renderDeclaredValues({
+              heading: "Scopes",
+              values: configuration.scopes,
+              usageCounts: documentScan.scopeUsageCounts,
+              usedOnly: false,
+            });
           } else if (shownCategory === "kinds") {
-            output += renderDeclaredValues(
-              "Kinds",
-              configuration.kinds,
-              kindUsageCounts,
+            output += renderDeclaredValues({
+              heading: "Kinds",
+              values: configuration.kinds,
+              usageCounts: kindUsageCounts,
               usedOnly,
-            );
+            });
           } else {
-            output += renderDeclaredValues(
-              "Tags",
-              configuration.tags,
-              tagUsageCounts,
+            output += renderDeclaredValues({
+              heading: "Tags",
+              values: configuration.tags,
+              usageCounts: tagUsageCounts,
               usedOnly,
-            );
+            });
           }
         }
         process.stdout.write(output);
@@ -102,42 +87,49 @@ export function createShowCommand(): Command {
     );
 }
 
-function selectDocumentsByScope(
-  documents: WaymarkDocument[],
-  selectedScopes: Set<string>,
-): WaymarkDocument[] {
-  if (selectedScopes.size === 0) return documents;
-  return documents.filter((document) =>
-    document.scopes.some((scope) => selectedScopes.has(scope)),
-  );
+function collectScopeOptionValue(
+  value: string,
+  previous: string[] | undefined,
+): string[] {
+  return [...(previous ?? []), value];
 }
 
-function countKindUsage(
-  declarations: Map<string, ConfigurationDeclaration>,
-  documents: WaymarkDocument[],
-): Map<string, number> {
-  const counts = createUsageCounts(declarations);
-  for (const document of documents) incrementUsageCount(counts, document.kind);
-  return counts;
-}
-
-function countTagUsage(
-  declarations: Map<string, ConfigurationDeclaration>,
-  documents: WaymarkDocument[],
-): Map<string, number> {
-  const counts = createUsageCounts(declarations);
-  for (const document of documents) {
-    for (const tag of document.tags) incrementUsageCount(counts, tag);
+function parseScopeOptions({
+  values,
+  declarations,
+}: {
+  values: string[];
+  declarations: Map<string, ConfigurationDeclaration>;
+}): Set<string> {
+  const scopes = new Set<string>();
+  for (const value of values) {
+    for (const scope of value.split(",")) {
+      if (scope === "") {
+        throw new Error("--scopes contains an empty identifier.");
+      }
+      if (scopes.has(scope)) {
+        throw new Error(`--scopes contains duplicate identifier "${scope}".`);
+      }
+      if (!declarations.has(scope)) {
+        throw new Error(`--scopes contains undeclared scope "${scope}".`);
+      }
+      scopes.add(scope);
+    }
   }
-  return counts;
+  return scopes;
 }
 
-function renderDeclaredValues(
-  heading: string,
-  values: Map<string, ConfigurationDeclaration>,
-  usageCounts: Map<string, number>,
-  usedOnly: boolean,
-): string {
+function renderDeclaredValues({
+  heading,
+  values,
+  usageCounts,
+  usedOnly,
+}: {
+  heading: string;
+  values: Map<string, ConfigurationDeclaration>;
+  usageCounts: Map<string, number>;
+  usedOnly: boolean;
+}): string {
   let output = `${heading}:\n`;
   const sortedValues = [...values.entries()].sort(([left], [right]) =>
     left < right ? -1 : left > right ? 1 : 0,
