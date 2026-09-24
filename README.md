@@ -113,11 +113,11 @@ npm install --save-dev waymark-docs
    ```
 
    ```sh
-   npx waymark find --scopes backend --kinds convention --tags typescript --show description
+   npx waymark find --scopes backend --kinds convention --tags typescript
    ```
 
    ```text
-   docs/conventions/typescript.md: TypeScript conventions for this repository
+   docs/conventions/typescript.md [backend,search-service] [convention] [typescript] — TypeScript conventions for this repository
    ```
 
    To have agents use Waymark continuously, add this to `AGENTS.md`,
@@ -128,9 +128,8 @@ npm install --save-dev waymark-docs
 
    Before working on a non-trivial task, run `npx waymark show`, then use
    `npx waymark find` with relevant comma-separated `--scopes`, `--kinds` and
-   `--tags` values, using `--show scopes,kind,tags,description` to inspect
-   results. Use `--query` for literal text searches and `--filter` for Boolean
-   expressions over metadata when you need more detailed results.
+   `--tags` values. Use `--query` for literal text searches and `--filter` for
+   Boolean expressions over metadata when you need more detailed results.
    ```
 
 Waymark uses `waymark.yml` by default and also recognizes `waymark.yaml`. It
@@ -265,7 +264,8 @@ Usage: waymark find [options]
 Discover Waymark Documents
 
 Options:
-  --scopes <identifiers>            match any scope (comma-separated, repeatable)
+  --scopes <identifiers>            match any scope (comma-separated,
+                                    repeatable)
   -k, --kinds <identifiers>         match any kind (comma-separated, repeatable)
   -t, --tags <identifiers>          match any tag (comma-separated, repeatable)
   -T, --require-tags <identifiers>  require every tag (comma-separated,
@@ -273,8 +273,8 @@ Options:
   -f, --filter <expression>         match a boolean filter expression
   -q, --query <text>                match literal text content
                                     (case-insensitive)
-  -s, --show <fields>               show scopes, kind, tags and description
-                                    (comma-separated)
+  -s, --show <fields>               show only selected metadata fields
+                                    (comma-separated; defaults to all)
   --json                            return a flat JSON array
   --tree                            output documents as directory tree
   -h, --help                        display help for command
@@ -316,10 +316,11 @@ npx waymark find --filter 'scope:backend AND (kind:adr OR kind:convention) AND t
 `--filter` cannot be combined with `--scopes`, `--kinds`, `--tags` or
 `--require-tags`.
 
-Add metadata fields to the default line-oriented output with `--show`:
+By default, line, JSON and tree output include scopes, kind, tags and
+description in that order. Use `--show` to select a non-empty subset:
 
 ```sh
-npx waymark find --kinds convention --show scopes,kind,tags,description
+npx waymark find --kinds convention --show kind,description
 ```
 
 Return structured output for scripts and agents:

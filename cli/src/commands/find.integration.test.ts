@@ -40,7 +40,10 @@ integrationTest(
     });
 
     expect(result.status).toBe(0);
-    expect(result.stdout).toBe("docs/first.mdx\nz-last.md\n");
+    expect(result.stdout).toBe(
+      "docs/first.mdx [] [adr] [] — First decision\n" +
+        "z-last.md [] [guide] [] — Last guide\n",
+    );
     expect(result.stderr).toBe("");
   },
 );
@@ -93,7 +96,10 @@ integrationTest(
     });
 
     expect(result.status).toBe(0);
-    expect(result.stdout).toBe("a.md\nb.md\n");
+    expect(result.stdout).toBe(
+      "a.md [] [adr] [react,review,typescript] — a.md\n" +
+        "b.md [] [convention] [backend,review,typescript] — b.md\n",
+    );
     expect(result.stderr).toBe("");
   },
 );
@@ -140,13 +146,24 @@ integrationTest(
     });
 
     expect(scopesResult.status).toBe(0);
-    expect(scopesResult.stdout).toBe("a.md\nb.md\nd.md\n");
+    expect(scopesResult.stdout).toBe(
+      "a.md [backend] [adr] [] — a.md\n" +
+        "b.md [search-service] [guide] [] — b.md\n" +
+        "d.md [backend,search-service] [guide] [] — d.md\n",
+    );
     expect(scopesResult.stderr).toBe("");
     expect(combinedResult.status).toBe(0);
-    expect(combinedResult.stdout).toBe("d.md\n");
+    expect(combinedResult.stdout).toBe(
+      "d.md [backend,search-service] [guide] [] — d.md\n",
+    );
     expect(combinedResult.stderr).toBe("");
     expect(unfilteredResult.status).toBe(0);
-    expect(unfilteredResult.stdout).toBe("a.md\nb.md\nc.md\nd.md\n");
+    expect(unfilteredResult.stdout).toBe(
+      "a.md [backend] [adr] [] — a.md\n" +
+        "b.md [search-service] [guide] [] — b.md\n" +
+        "c.md [] [guide] [] — c.md\n" +
+        "d.md [backend,search-service] [guide] [] — d.md\n",
+    );
   },
 );
 
@@ -187,7 +204,10 @@ integrationTest(
     });
 
     expect(result.status).toBe(0);
-    expect(result.stdout).toBe("a.md\nb.md\n");
+    expect(result.stdout).toBe(
+      "a.md [] [adr] [react] — a.md\n" +
+        "b.md [] [convention] [react,typescript] — b.md\n",
+    );
     expect(result.stderr).toBe("");
   },
 );
@@ -230,7 +250,7 @@ integrationTest(
     });
 
     expect(result.status).toBe(0);
-    expect(result.stdout).toBe("backend.md\n");
+    expect(result.stdout).toBe("backend.md [backend] [guide] [] — Backend\n");
     expect(result.stderr).toBe("");
   },
 );
@@ -278,10 +298,15 @@ integrationTest(
     });
 
     expect(simpleFilterResult.status).toBe(0);
-    expect(simpleFilterResult.stdout).toBe("matching.md\nmatching.mdx\n");
+    expect(simpleFilterResult.stdout).toBe(
+      "matching.md [] [guide] [] — Matching body\n" +
+        "matching.mdx [] [guide] [] — Matching MDX body\n",
+    );
     expect(simpleFilterResult.stderr).toBe("");
     expect(advancedFilterResult.status).toBe(0);
-    expect(advancedFilterResult.stdout).toBe("wrong-kind.mdx\n");
+    expect(advancedFilterResult.stdout).toBe(
+      "wrong-kind.mdx [] [adr] [] — Wrong kind\n",
+    );
     expect(advancedFilterResult.stderr).toBe("");
   },
 );
@@ -375,13 +400,35 @@ integrationTest(
       "utf8",
     );
 
-    const result = runWaymark({
+    const defaultResult = runWaymark({
+      arguments: ["find", "--json"],
+      workingDirectoryPath: repositoryPath,
+    });
+    const limitedResult = runWaymark({
       arguments: ["find", "--json", "--show", "description,kind,scopes"],
       workingDirectoryPath: repositoryPath,
     });
 
-    expect(result.status).toBe(0);
-    expect(JSON.parse(result.stdout)).toEqual([
+    expect(defaultResult.status).toBe(0);
+    expect(JSON.parse(defaultResult.stdout)).toEqual([
+      {
+        path: "a.md",
+        scopes: [],
+        kind: "guide",
+        tags: [],
+        description: "First\nsecond\n",
+      },
+      {
+        path: "z.md",
+        scopes: ["backend"],
+        kind: "guide",
+        tags: ["react"],
+        description: "Last",
+      },
+    ]);
+    expect(defaultResult.stderr).toBe("");
+    expect(limitedResult.status).toBe(0);
+    expect(JSON.parse(limitedResult.stdout)).toEqual([
       {
         path: "a.md",
         scopes: [],
@@ -395,7 +442,7 @@ integrationTest(
         description: "Last",
       },
     ]);
-    expect(result.stderr).toBe("");
+    expect(limitedResult.stderr).toBe("");
   },
 );
 
@@ -425,13 +472,27 @@ integrationTest(
       "utf8",
     );
 
-    const result = runWaymark({
+    const defaultResult = runWaymark({
+      arguments: ["find", "--tree"],
+      workingDirectoryPath: repositoryPath,
+    });
+    const limitedResult = runWaymark({
       arguments: ["find", "--tree", "--show", "kind"],
       workingDirectoryPath: repositoryPath,
     });
 
-    expect(result.status).toBe(0);
-    expect(result.stdout).toBe(
+    expect(defaultResult.status).toBe(0);
+    expect(defaultResult.stdout).toBe(
+      "docs.md [] [guide] [] — A guide\n" +
+        "docs/\n" +
+        "├── a.md [] [guide] [] — A guide\n" +
+        "└── nested/\n" +
+        "    └── b.md [] [guide] [] — A guide\n" +
+        "root.md [] [guide] [] — A guide\n",
+    );
+    expect(defaultResult.stderr).toBe("");
+    expect(limitedResult.status).toBe(0);
+    expect(limitedResult.stdout).toBe(
       "docs.md [guide]\n" +
         "docs/\n" +
         "├── a.md [guide]\n" +
@@ -439,7 +500,7 @@ integrationTest(
         "    └── b.md [guide]\n" +
         "root.md [guide]\n",
     );
-    expect(result.stderr).toBe("");
+    expect(limitedResult.stderr).toBe("");
   },
 );
 
@@ -509,19 +570,27 @@ integrationTest(
     });
 
     expect(kindsResult.status).toBe(0);
-    expect(kindsResult.stdout).toBe("adr.md\nguide.md\n");
+    expect(kindsResult.stdout).toBe(
+      "adr.md [] [adr] [react,review,typescript] — Decision\n" +
+        "guide.md [] [guide] [typescript] — Guide\n",
+    );
     expect(kindsResult.stderr).toBe("");
     expect(repeatedKindsResult.status).toBe(0);
     expect(repeatedKindsResult.stdout).toBe(kindsResult.stdout);
     expect(repeatedKindsResult.stderr).toBe("");
     expect(tagsResult.status).toBe(0);
-    expect(tagsResult.stdout).toBe("adr.md\nguide.md\n");
+    expect(tagsResult.stdout).toBe(
+      "adr.md [] [adr] [react,review,typescript] — Decision\n" +
+        "guide.md [] [guide] [typescript] — Guide\n",
+    );
     expect(tagsResult.stderr).toBe("");
     expect(repeatedTagsResult.status).toBe(0);
     expect(repeatedTagsResult.stdout).toBe(tagsResult.stdout);
     expect(repeatedTagsResult.stderr).toBe("");
     expect(requiredTagsResult.status).toBe(0);
-    expect(requiredTagsResult.stdout).toBe("adr.md\n");
+    expect(requiredTagsResult.stdout).toBe(
+      "adr.md [] [adr] [react,review,typescript] — Decision\n",
+    );
     expect(requiredTagsResult.stderr).toBe("");
     expect(repeatedRequiredTagsResult.status).toBe(0);
     expect(repeatedRequiredTagsResult.stdout).toBe(requiredTagsResult.stdout);
@@ -767,7 +836,7 @@ integrationTest(
     ]);
     expect(jsonResult.stderr).toBe("");
     expect(treeResult.status).toBe(0);
-    expect(treeResult.stdout).toBe("guide.md\n");
+    expect(treeResult.stdout).toBe("guide.md [] [guide] [react] — Guide\n");
     expect(treeResult.stderr).toBe("");
     expect(removedJsonShorthandResult.status).toBe(1);
     expect(removedJsonShorthandResult.stdout).toBe("");

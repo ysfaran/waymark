@@ -20,7 +20,9 @@ type FindOptions = {
   tree?: boolean;
 };
 
-type ShownField = "scopes" | "kind" | "tags" | "description";
+const SHOWN_FIELDS = ["scopes", "kind", "tags", "description"] as const;
+
+type ShownField = (typeof SHOWN_FIELDS)[number];
 
 type ProjectedDocument = {
   path: string;
@@ -60,7 +62,7 @@ export function createFindCommand(): Command {
     )
     .option(
       "-s, --show <fields>",
-      "show scopes, kind, tags and description (comma-separated)",
+      "show only selected metadata fields (comma-separated; defaults to all)",
     )
     .option("--json", "return a flat JSON array")
     .option("--tree", "output documents as directory tree")
@@ -177,16 +179,11 @@ function projectDocument(
 }
 
 function parseShownFields(value: string | undefined): Set<ShownField> {
-  if (value === undefined) return new Set();
+  if (value === undefined) return new Set(SHOWN_FIELDS);
 
   const shownFields = new Set<ShownField>();
   for (const field of value.split(",")) {
-    if (
-      field !== "scopes" &&
-      field !== "kind" &&
-      field !== "tags" &&
-      field !== "description"
-    ) {
+    if (!isShownField(field)) {
       throw new Error(
         `Unknown find field "${field}". Expected scopes, kind, tags, or description.`,
       );
@@ -197,6 +194,10 @@ function parseShownFields(value: string | undefined): Set<ShownField> {
     shownFields.add(field);
   }
   return shownFields;
+}
+
+function isShownField(field: string): field is ShownField {
+  return SHOWN_FIELDS.some((shownField) => shownField === field);
 }
 
 function renderDocumentLine(

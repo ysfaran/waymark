@@ -6,7 +6,7 @@ Use the local Waymark CLI before exploring or changing the repository:
 
 ```sh
 pnpm --filter waymark-docs dev show
-pnpm --filter waymark-docs dev find --kinds agent-guide --tags agents --show description
+pnpm --filter waymark-docs dev find --kinds agent-guide --tags agents
 ```
 
 Choose kinds and tags relevant to the task. Add `--query "<text>"` when metadata
