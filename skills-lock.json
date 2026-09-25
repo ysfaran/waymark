@@ -127,6 +127,16 @@
       "skillPath": "skills/engineering/wayfinder/SKILL.md",
       "computedHash": "c9e18cefd77b6b5b0ee35f59ce2fd96359aa2d2f02e3479e12c873c5402d9d43"
     },
+    "waymark": {
+      "source": "./skills",
+      "sourceType": "local",
+      "computedHash": "f26f29fb112fa1bf51a1be5e056999d36604520d7d674d1437d784520efd02a9"
+    },
+    "waymark-setup": {
+      "source": "./skills",
+      "sourceType": "local",
+      "computedHash": "60aa2dbe4ba52bb5b90b1b2aca6024484cc9f92801379fcb07678658c86f5cb3"
+    },
     "writing-great-skills": {
       "source": "mattpocock/skills",
       "sourceType": "github",

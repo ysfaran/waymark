@@ -4,17 +4,17 @@
 
 Waymark is a small, offline-first CLI that helps coding agents find the right
 repository docs for each task. Add structured frontmatter to existing Markdown
-or MDX files, and agents can discover only relevant paths before opening a
+or MDX files and agents can discover only relevant paths before opening a
 document without reading a large index or following linked navigation files
 that load unrelated context. It is as easy to set up as file-based navigation,
-but remains deterministic and token-efficient; unlike RAG or MCP-backed
+but remains deterministic and token-efficient. Unlike RAG or MCP-backed
 retrieval, it needs no ranking, maintained index or retrieval infrastructure.
 
 Each document has three searchable metadata dimensions:
 
 1. **Scope:** Where does this document apply? (`backend`, `search-service`)
 2. **Kind:** What role does this document serve? (`convention`, `agent-guide`, `adr`)
-3. **Tags:** What topics does it cover? (`testing`, `architecture`)
+3. **Tags:** What topics does it cover? (`testing`, `typescript`)
 
 ![Waymark reduces the effort required to find relevant context without retrieval infrastructure.](https://raw.githubusercontent.com/ysfaran/waymark/main/docs/assets/why-waymark.svg)
 
@@ -33,7 +33,16 @@ Each document has three searchable metadata dimensions:
 
 ## Installation
 
-Install the `waymark-docs` package as a development dependency:
+Install the `waymark` and `waymark-setup` skills for your coding agents:
+
+```sh
+npx skills add ysfaran/waymark --skill waymark --skill waymark-setup
+```
+
+`waymark-setup` automatically detects the active package manager and installs
+`waymark-docs` locally as a development dependency.
+
+To install the CLI manually instead, run the matching command:
 
 ```sh
 pnpm add -D waymark-docs
@@ -44,98 +53,19 @@ npm install --save-dev waymark-docs
 
 ## Quick start
 
-1. **Create a Waymark configuration**
-
-   Run `init` in the repository root:
+1. Install the skills in the repository you want to set up:
 
    ```sh
-   npx waymark init
+   npx skills add ysfaran/waymark --skill waymark --skill waymark-setup
    ```
 
-2. **Define searchable metadata**
-
-   Add the document scopes, kinds and tags that agents can search:
-
-   ```yaml
-   scopes:
-     backend: Documentation that applies to backend services
-     search-service: Documentation that applies to the search service
-
-   kinds:
-     adr: Read to understand past architectural decisions and their constraints
-     convention: Read before changing code to follow required repository practices
-
-   tags:
-     architecture: System boundaries, component relationships and dependencies
-     typescript: TypeScript-related documentation
-   ```
-
-3. **Register a document**
-
-   Add Waymark metadata to a Markdown or MDX file. For example, save this as
-   `docs/conventions/typescript.md`:
-
-   ```yaml
-   ---
-   kind: convention
-   description: TypeScript conventions for this repository
-   scopes: [backend, search-service]
-   tags: [typescript]
-   ---
-   # TypeScript conventions
-   ```
-
-4. **Validate the repository**
-
-   Check the configuration and discovered documents:
-
-   ```sh
-   npx waymark status
-   ```
-
-   ```text
-   Root: /path/to/repository
-   Status: valid
-   Waymark Documents: 1
-   Unregistered Documents: 1
-   Scopes: 2
-   Kinds: 2
-   Tags: 2
-   ```
-
-5. **Discover documents**
-
-   List the available vocabulary, then run `npx waymark find` with relevant
-   scope, kind and tag filters:
-
-   ```sh
-   npx waymark show
-   ```
-
-   ```sh
-   npx waymark find --scopes backend --kinds convention --tags typescript
-   ```
-
-   ```text
-   docs/conventions/typescript.md [backend,search-service] [convention] [typescript] — TypeScript conventions for this repository
-   ```
-
-   To have agents use Waymark continuously, add this to `AGENTS.md`,
-   `CLAUDE.md` or an equivalent file:
-
-   ```md
-   ## Context Discovery
-
-   Before working on a non-trivial task, run `npx waymark show`, then use
-   `npx waymark find` with relevant comma-separated `--scopes`, `--kinds` and
-   `--tags` values. Use `--query` for literal text searches and `--filter` for
-   Boolean expressions over metadata when you need more detailed results.
-   ```
-
-Waymark uses `waymark.yml` by default and also recognizes `waymark.yaml`. It
-looks for the configuration in the current directory and its ancestors, so
-commands can also run from a nested repository directory. Use only one filename
-per directory.
+2. Ask your coding agent to use `waymark-setup`. This one-time interactive
+   setup installs the CLI, configures the repository, registers useful
+   documents and adds an instruction to `AGENTS.md` or an equivalent file to
+   use the `waymark` skill for non-trivial tasks.
+3. Review the generated `waymark.yml` configuration file, then give a fresh
+   agent a non-trivial task and confirm it uses Waymark to discover relevant
+   context before working.
 
 ## Commands
 
@@ -171,7 +101,7 @@ replace with your own scope, kind and tag:
 ```yaml
 # When true, document metadata must be nested under a `waymark` frontmatter key.
 require-namespace: false
-# When true, every Waymark Document must declare at least one scope.
+# When true, every waymark document must declare at least one scope.
 require-scopes: false
 scopes:
   example-scope: Explain the repository area represented by this scope
