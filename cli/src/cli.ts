@@ -6,6 +6,7 @@ import packageJson from "../package.json" with { type: "json" };
 import { createFindCommand } from "./commands/find.js";
 import { createInitCommand } from "./commands/init.js";
 import { createLsCommand } from "./commands/ls.js";
+import { createShowCommand } from "./commands/show.js";
 import { createStatusCommand } from "./commands/status.js";
 
 const program = new Command()
@@ -16,6 +17,7 @@ const program = new Command()
 
 program.addCommand(createInitCommand());
 program.addCommand(createStatusCommand());
+program.addCommand(createShowCommand());
 program.addCommand(createFindCommand());
 program.addCommand(createLsCommand());
 

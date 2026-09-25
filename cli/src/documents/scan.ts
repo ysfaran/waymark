@@ -9,11 +9,13 @@ import {
 } from "../configuration/index.js";
 import { isErrorWithCode } from "../filesystem.js";
 import { classifyDocument } from "./classify.js";
+import { createUsageCounts, incrementUsageCount } from "./usage-counts.js";
 
 export type WaymarkDocument = {
   path: string;
   kind: string;
   description: string;
+  scopes: string[];
   tags: string[];
   body: string;
 };
@@ -34,6 +36,7 @@ export type DocumentScanResult =
       kind: "valid";
       documents: WaymarkDocument[];
       unregisteredDocuments: string[];
+      scopeUsageCounts: Map<string, number>;
       kindUsageCounts: Map<string, number>;
       tagUsageCounts: Map<string, number>;
     }
@@ -63,10 +66,18 @@ export async function scanDocuments({
     extglob: false,
   });
   const documents: WaymarkDocument[] = [];
+  const scopeUsageCounts = createUsageCounts(configuration.scopes);
   const kindUsageCounts = createUsageCounts(configuration.kinds);
   const tagUsageCounts = createUsageCounts(configuration.tags);
   const diagnostics: DocumentScanDiagnostic[] = [];
   const unregisteredDocuments: string[] = [];
+  const registrationPolicy = {
+    requireNamespace: configuration.requireNamespace,
+    requireScopes: configuration.requireScopes,
+    declaredScopes: configuration.scopes,
+    declaredKinds: configuration.kinds,
+    declaredTags: configuration.tags,
+  };
 
   for (const path of discoveredPaths.sort(compareText)) {
     if (allowedConfigFileNames.some((fileName) => fileName === path)) continue;
@@ -84,9 +95,7 @@ export async function scanDocuments({
     const source = await readFile(join(scanRootPath, path), "utf8");
     const classification = classifyDocument({
       source,
-      requireNamespace: configuration.requireNamespace,
-      declaredKinds: configuration.kinds,
-      declaredTags: configuration.tags,
+      registrationPolicy,
       path,
     });
     if (classification.kind === "unregistered") {
@@ -100,6 +109,9 @@ export async function scanDocuments({
 
     const document = { path, ...classification.document };
     documents.push(document);
+    for (const scope of document.scopes) {
+      incrementUsageCount(scopeUsageCounts, scope);
+    }
     incrementUsageCount(kindUsageCounts, document.kind);
     for (const tag of document.tags) incrementUsageCount(tagUsageCounts, tag);
   }
@@ -115,6 +127,7 @@ export async function scanDocuments({
     kind: "valid",
     documents,
     unregisteredDocuments,
+    scopeUsageCounts,
     kindUsageCounts,
     tagUsageCounts,
   };
@@ -199,22 +212,6 @@ function createCandidatePatterns(
       (fileName) => `${candidatePrefix}${fileName}`,
     ),
   ];
-}
-
-function createUsageCounts(
-  declarations: Map<string, unknown>,
-): Map<string, number> {
-  return new Map([...declarations.keys()].map((identifier) => [identifier, 0]));
-}
-
-function incrementUsageCount(
-  usageCounts: Map<string, number>,
-  identifier: string,
-): void {
-  const currentCount = usageCounts.get(identifier);
-  if (currentCount !== undefined) {
-    usageCounts.set(identifier, currentCount + 1);
-  }
 }
 
 function compareDiagnostics(

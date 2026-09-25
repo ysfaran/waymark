@@ -47,6 +47,7 @@ integrationTest(
         "Status: valid\n" +
         "Waymark Documents: 1\n" +
         "Unregistered Documents: 1\n" +
+        "Scopes: 0\n" +
         "Kinds: 1\n" +
         "Tags: 1\n",
     );
@@ -60,6 +61,9 @@ integrationTest(
     await writeFile(
       join(repositoryPath, "waymark.yaml"),
       "require-namespace: sometimes\n" +
+        "require-scopes: sometimes\n" +
+        "scopes:\n" +
+        "  Bad_SCOPE: ''\n" +
         "kinds:\n" +
         "  Bad_ID: ''\n" +
         "tags:\n" +
@@ -87,6 +91,9 @@ integrationTest(
         "error: waymark.yaml: kinds.Bad_ID: Identifier must use lowercase kebab-case.\n" +
         "error: waymark.yaml: mystery: Unknown field.\n" +
         "error: waymark.yaml: require-namespace: Expected a boolean.\n" +
+        "error: waymark.yaml: require-scopes: Expected a boolean.\n" +
+        "error: waymark.yaml: scopes.Bad_SCOPE: Description must be a non-empty string.\n" +
+        "error: waymark.yaml: scopes.Bad_SCOPE: Identifier must use lowercase kebab-case.\n" +
         "error: waymark.yaml: tags.topic: Description must be a non-empty string.\n",
     );
   },
@@ -264,6 +271,87 @@ integrationTest(
 );
 
 integrationTest(
+  "status validates flat and namespaced Document Scopes and enforces require-scopes only for registrations",
+  async ({ temporaryRepositoryPath: repositoryPath }) => {
+    await writeFile(
+      join(repositoryPath, "waymark.yaml"),
+      "require-namespace: false\n" +
+        "require-scopes: true\n" +
+        "scopes:\n" +
+        "  backend: Backend services\n" +
+        "  search-service: Search service\n" +
+        "kinds:\n" +
+        "  guide: Guides\n" +
+        "tags: {}\n",
+      "utf8",
+    );
+    await writeFile(
+      join(repositoryPath, "flat.md"),
+      "---\n" +
+        "kind: guide\n" +
+        "description: Flat metadata\n" +
+        "scopes: [backend, search-service]\n" +
+        "---\n",
+      "utf8",
+    );
+    await writeFile(
+      join(repositoryPath, "namespaced.md"),
+      "---\n" +
+        "waymark:\n" +
+        "  kind: guide\n" +
+        "  description: Namespaced metadata\n" +
+        "  scopes: [backend]\n" +
+        "---\n",
+      "utf8",
+    );
+    await writeFile(
+      join(repositoryPath, "unregistered.md"),
+      "---\nscopes: [missing]\ntitle: Unregistered\n---\n",
+      "utf8",
+    );
+
+    const validResult = runWaymark({
+      arguments: ["status"],
+      workingDirectoryPath: repositoryPath,
+    });
+
+    expect(validResult.status).toBe(0);
+    expect(validResult.stdout).toContain("Waymark Documents: 2\n");
+    expect(validResult.stdout).toContain("Unregistered Documents: 1\n");
+    expect(validResult.stdout).toContain("Scopes: 2\n");
+    expect(validResult.stderr).toBe("");
+
+    await writeFile(
+      join(repositoryPath, "a-missing-scopes.md"),
+      "---\nkind: guide\ndescription: Missing scopes\n---\n",
+      "utf8",
+    );
+    await writeFile(
+      join(repositoryPath, "b-invalid-scopes.md"),
+      "---\n" +
+        "waymark:\n" +
+        "  kind: guide\n" +
+        "  description: Invalid scopes\n" +
+        "  scopes: [missing, backend, backend]\n" +
+        "---\n",
+      "utf8",
+    );
+
+    const invalidResult = runWaymark({
+      arguments: ["status"],
+      workingDirectoryPath: repositoryPath,
+    });
+
+    expect(invalidResult.status).toBe(1);
+    expect(invalidResult.stderr).toBe(
+      "error: a-missing-scopes.md: scopes: At least one scope is required.\n" +
+        'error: b-invalid-scopes.md: waymark.scopes: Duplicate scope "backend".\n' +
+        'error: b-invalid-scopes.md: waymark.scopes: Undeclared scope "missing".\n',
+    );
+  },
+);
+
+integrationTest(
   "status aggregates document diagnostics in deterministic path-and-field order",
   async ({ temporaryRepositoryPath: repositoryPath }) => {
     await writeFile(
@@ -436,60 +524,16 @@ integrationTest(
 );
 
 integrationTest(
-  "status --show kind,tags lists declared values and usage counts",
+  "status rejects the removed --show option",
   async ({ temporaryRepositoryPath: repositoryPath }) => {
-    await writeFile(
-      join(repositoryPath, "waymark.yaml"),
-      "require-namespace: false\n" +
-        "kinds:\n" +
-        "  guide: Guides\n" +
-        "  adr: Architecture decisions\n" +
-        "tags:\n" +
-        "  typescript: TypeScript\n" +
-        "  architecture: Architecture\n",
-      "utf8",
-    );
-    await writeFile(
-      join(repositoryPath, "decision.md"),
-      "---\n" +
-        "waymark:\n" +
-        "  kind: adr\n" +
-        "  description: Choose the runtime\n" +
-        "  tags: [architecture]\n" +
-        "---\n",
-      "utf8",
-    );
-
     const result = runWaymark({
-      arguments: ["status", "--show", "kind,tags"],
-      workingDirectoryPath: repositoryPath,
-    });
-    const shorthandResult = runWaymark({
-      arguments: ["status", "-s", "kind,tags"],
+      arguments: ["status", "--show", "kinds"],
       workingDirectoryPath: repositoryPath,
     });
 
-    expect(result.status).toBe(0);
-    const canonicalRepositoryPath = await realpath(repositoryPath);
-    expect(result.stdout).toBe(
-      `Root: ${canonicalRepositoryPath}\n` +
-        "Status: valid\n" +
-        "Waymark Documents: 1\n" +
-        "Unregistered Documents: 0\n" +
-        "Kinds: 2\n" +
-        "Tags: 2\n" +
-        "\n" +
-        "Kinds:\n" +
-        "  adr — Architecture decisions (1 document)\n" +
-        "  guide — Guides (0 documents)\n" +
-        "Tags:\n" +
-        "  architecture — Architecture (1 document)\n" +
-        "  typescript — TypeScript (0 documents)\n",
-    );
-    expect(result.stderr).toBe("");
-    expect(shorthandResult.status).toBe(0);
-    expect(shorthandResult.stdout).toBe(result.stdout);
-    expect(shorthandResult.stderr).toBe("");
+    expect(result.status).toBe(1);
+    expect(result.stdout).toBe("");
+    expect(result.stderr).toContain("unknown option '--show'");
   },
 );
 

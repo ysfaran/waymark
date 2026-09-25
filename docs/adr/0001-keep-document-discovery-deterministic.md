@@ -12,6 +12,6 @@ discovery predictable, explainable, offline, and token-efficient; interpreting
 the task and choosing appropriate criteria remain responsibilities of the
 calling agent. Waymark will not derive selection criteria from task
 descriptions, file paths, or diffs; the agent must translate its context into
-Document Kind and Document Tag filters and an optional Content Query. Matching
-documents are ordered only by repository-relative path using
+Document Scope, Document Kind, and Document Tag filters and an optional Content
+Query. Matching documents are ordered only by repository-relative path using
 locale-independent ordering; Waymark does not rank presumed relevance.

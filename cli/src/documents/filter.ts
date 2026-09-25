@@ -2,6 +2,7 @@ import type { Configuration } from "../configuration/index.js";
 import type { WaymarkDocument } from "./scan.js";
 
 type FilterableDocument = {
+  scopes: string[];
   kind: string;
   tags: string[];
 };
@@ -9,6 +10,7 @@ type FilterableDocument = {
 type MetadataCriteria =
   | {
       method: "filter-groups";
+      scopes: Set<string>;
       kinds: Set<string>;
       tags: Set<string>;
       requiredTags: Set<string>;
@@ -24,6 +26,7 @@ type DocumentCriteria = {
 };
 
 type FilterNode =
+  | { type: "scope"; identifier: string }
   | { type: "kind"; identifier: string }
   | { type: "tag"; identifier: string }
   | { type: "not"; operand: FilterNode }
@@ -31,6 +34,7 @@ type FilterNode =
   | { type: "or"; left: FilterNode; right: FilterNode };
 
 type Token =
+  | { type: "scope"; identifier: string; position: number }
   | { type: "kind"; identifier: string; position: number }
   | { type: "tag"; identifier: string; position: number }
   | {
@@ -52,10 +56,13 @@ export function filterDocuments({
     metadata.method === "filter-expression"
       ? parseMetadataFilter({
           expression: metadata.expression,
+          declaredScopes: new Set(configuration.scopes.keys()),
           declaredKinds: new Set(configuration.kinds.keys()),
           declaredTags: new Set(configuration.tags.keys()),
         })
       : (document: FilterableDocument) =>
+          (metadata.scopes.size === 0 ||
+            document.scopes.some((scope) => metadata.scopes.has(scope))) &&
           (metadata.kinds.size === 0 || metadata.kinds.has(document.kind)) &&
           (metadata.tags.size === 0 ||
             document.tags.some((tag) => metadata.tags.has(tag))) &&
@@ -76,14 +83,21 @@ export function filterDocuments({
 
 export function parseMetadataFilter({
   expression,
+  declaredScopes,
   declaredKinds,
   declaredTags,
 }: {
   expression: string;
+  declaredScopes: Set<string>;
   declaredKinds: Set<string>;
   declaredTags: Set<string>;
 }): (document: FilterableDocument) => boolean {
-  const tokens = tokenize(expression, declaredKinds, declaredTags);
+  const tokens = tokenize(
+    expression,
+    declaredScopes,
+    declaredKinds,
+    declaredTags,
+  );
   let nextTokenIndex = 0;
 
   function peek(): Token | undefined {
@@ -95,7 +109,7 @@ export function parseMetadataFilter({
     if (!token) {
       throw syntaxError(
         expression.length,
-        'Expected a kind: or tag: predicate, or "(".',
+        'Expected a scope:, kind:, or tag: predicate, or "(".',
       );
     }
     nextTokenIndex += 1;
@@ -104,7 +118,11 @@ export function parseMetadataFilter({
 
   function parsePrimary(): FilterNode {
     const token = consume();
-    if (token.type === "kind" || token.type === "tag") {
+    if (
+      token.type === "scope" ||
+      token.type === "kind" ||
+      token.type === "tag"
+    ) {
       return {
         type: token.type,
         identifier: token.identifier,
@@ -125,7 +143,7 @@ export function parseMetadataFilter({
 
     throw syntaxError(
       token.position,
-      'Expected a kind: or tag: predicate, or "(".',
+      'Expected a scope:, kind:, or tag: predicate, or "(".',
     );
   }
 
@@ -161,6 +179,7 @@ export function parseMetadataFilter({
   const remainingToken = peek();
   if (remainingToken) {
     const message =
+      remainingToken.type === "scope" ||
       remainingToken.type === "kind" ||
       remainingToken.type === "tag" ||
       remainingToken.type === "not" ||
@@ -175,6 +194,7 @@ export function parseMetadataFilter({
 
 function tokenize(
   expression: string,
+  declaredScopes: Set<string>,
   declaredKinds: Set<string>,
   declaredTags: Set<string>,
 ): Token[] {
@@ -220,22 +240,32 @@ function tokenize(
       continue;
     }
 
-    const predicate = /^(kind|tag):([a-z0-9]+(?:-[a-z0-9]+)*)$/.exec(value);
+    const predicate = /^(scope|kind|tag):([a-z0-9]+(?:-[a-z0-9]+)*)$/.exec(
+      value,
+    );
     if (!predicate) {
       throw syntaxError(
         tokenPosition,
-        `Unsupported token "${value}". Expected kind:<identifier>, tag:<identifier>, NOT, AND, OR, or parentheses.`,
+        `Unsupported token "${value}". Expected scope:<identifier>, kind:<identifier>, tag:<identifier>, NOT, AND, OR, or parentheses.`,
       );
     }
 
     const [, predicateType, identifier] = predicate;
-    if (predicateType !== "kind" && predicateType !== "tag") {
+    if (
+      predicateType !== "scope" &&
+      predicateType !== "kind" &&
+      predicateType !== "tag"
+    ) {
       throw new Error("Metadata Filter parser invariant failed.");
     }
     if (!identifier)
       throw new Error("Metadata Filter parser invariant failed.");
     const declarations =
-      predicateType === "kind" ? declaredKinds : declaredTags;
+      predicateType === "scope"
+        ? declaredScopes
+        : predicateType === "kind"
+          ? declaredKinds
+          : declaredTags;
     if (!declarations.has(identifier)) {
       throw syntaxError(
         tokenPosition,
@@ -254,6 +284,8 @@ function tokenize(
 
 function evaluate(node: FilterNode, document: FilterableDocument): boolean {
   switch (node.type) {
+    case "scope":
+      return document.scopes.includes(node.identifier);
     case "kind":
       return document.kind === node.identifier;
     case "tag":

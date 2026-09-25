@@ -9,6 +9,7 @@ import {
 } from "../documents/index.js";
 
 type FindOptions = {
+  scopes?: string[];
   kinds?: string[];
   tags?: string[];
   requireTags?: string[];
@@ -19,10 +20,13 @@ type FindOptions = {
   tree?: boolean;
 };
 
-type ShownField = "kind" | "tags" | "description";
+const SHOWN_FIELDS = ["scopes", "kind", "tags", "description"] as const;
+
+type ShownField = (typeof SHOWN_FIELDS)[number];
 
 type ProjectedDocument = {
   path: string;
+  scopes?: string[];
   kind?: string;
   tags?: string[];
   description?: string;
@@ -31,6 +35,11 @@ type ProjectedDocument = {
 export function createFindCommand(): Command {
   return new Command("find")
     .description("Discover Waymark Documents")
+    .option(
+      "--scopes <identifiers>",
+      "match any scope (comma-separated, repeatable)",
+      collectOptionValue,
+    )
     .option(
       "-k, --kinds <identifiers>",
       "match any kind (comma-separated, repeatable)",
@@ -53,20 +62,24 @@ export function createFindCommand(): Command {
     )
     .option(
       "-s, --show <fields>",
-      "show kind, tags and description (comma-separated)",
+      "show only selected metadata fields (comma-separated; defaults to all)",
     )
     .option("--json", "return a flat JSON array")
     .option("--tree", "output documents as directory tree")
     .action(async (options: FindOptions) => {
+      const scopes = options.scopes ?? [];
       const kinds = options.kinds ?? [];
       const tags = options.tags ?? [];
       const requiredTags = options.requireTags ?? [];
       if (
         options.filter !== undefined &&
-        (kinds.length > 0 || tags.length > 0 || requiredTags.length > 0)
+        (scopes.length > 0 ||
+          kinds.length > 0 ||
+          tags.length > 0 ||
+          requiredTags.length > 0)
       ) {
         throw new Error(
-          "--filter cannot be combined with --kinds, --tags, or --require-tags.",
+          "--filter cannot be combined with --scopes, --kinds, --tags, or --require-tags.",
         );
       }
       if (options.json && options.tree) {
@@ -84,6 +97,12 @@ export function createFindCommand(): Command {
         options.filter === undefined
           ? {
               method: "filter-groups" as const,
+              scopes: parseIdentifierOptions({
+                optionName: "--scopes",
+                values: scopes,
+                declarations: configuration.scopes,
+                declarationName: "scope",
+              }),
               kinds: parseIdentifierOptions({
                 optionName: "--kinds",
                 values: kinds,
@@ -150,6 +169,7 @@ function projectDocument(
   shownFields: Set<ShownField>,
 ): ProjectedDocument {
   const projection: ProjectedDocument = { path: document.path };
+  if (shownFields.has("scopes")) projection.scopes = document.scopes;
   if (shownFields.has("kind")) projection.kind = document.kind;
   if (shownFields.has("tags")) projection.tags = document.tags;
   if (shownFields.has("description")) {
@@ -159,13 +179,13 @@ function projectDocument(
 }
 
 function parseShownFields(value: string | undefined): Set<ShownField> {
-  if (value === undefined) return new Set();
+  if (value === undefined) return new Set(SHOWN_FIELDS);
 
   const shownFields = new Set<ShownField>();
   for (const field of value.split(",")) {
-    if (field !== "kind" && field !== "tags" && field !== "description") {
+    if (!isShownField(field)) {
       throw new Error(
-        `Unknown find field "${field}". Expected kind, tags, or description.`,
+        `Unknown find field "${field}". Expected scopes, kind, tags, or description.`,
       );
     }
     if (shownFields.has(field)) {
@@ -176,12 +196,17 @@ function parseShownFields(value: string | undefined): Set<ShownField> {
   return shownFields;
 }
 
+function isShownField(field: string): field is ShownField {
+  return SHOWN_FIELDS.some((shownField) => shownField === field);
+}
+
 function renderDocumentLine(
   document: WaymarkDocument,
   shownFields: Set<ShownField>,
   displayedPath = document.path,
 ): string {
   let line = displayedPath;
+  if (shownFields.has("scopes")) line += ` [${document.scopes.join(",")}]`;
   if (shownFields.has("kind")) line += ` [${document.kind}]`;
   if (shownFields.has("tags")) line += ` [${document.tags.join(",")}]`;
   if (shownFields.has("description")) {
@@ -304,7 +329,7 @@ function parseIdentifierOptions({
   optionName: string;
   values: string[];
   declarations: Map<string, unknown>;
-  declarationName: "kind" | "tag";
+  declarationName: "scope" | "kind" | "tag";
 }): Set<string> {
   const identifiers = new Set<string>();
   for (const value of values) {

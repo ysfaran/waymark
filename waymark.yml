@@ -1,4 +1,6 @@
 require-namespace: false
+require-scopes: false
+scopes: {}
 kinds:
   adr: Records a durable architectural decision and its constraints
   agent-guide: Instructions for coding agents working in this repository
