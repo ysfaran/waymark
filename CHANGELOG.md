@@ -2,6 +2,13 @@
 
 All notable changes to Waymark are documented in this file.
 
+## [0.3.0](https://github.com/ysfaran/waymark/compare/v0.2.2...v0.3.0) (2026-09-25)
+
+
+### Features
+
+* **cli:** add document scope option ([#12](https://github.com/ysfaran/waymark/issues/12)) ([2a6b67f](https://github.com/ysfaran/waymark/commit/2a6b67f00244de004a0c1eb47548ace90a720e7d))
+
 ## [0.2.2](https://github.com/ysfaran/waymark/compare/v0.2.1...v0.2.2) (2026-09-18)
 
 
