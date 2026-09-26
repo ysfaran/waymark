@@ -2,6 +2,13 @@
 
 All notable changes to Waymark are documented in this file.
 
+## [0.3.1](https://github.com/ysfaran/waymark/compare/v0.3.0...v0.3.1) (2026-09-26)
+
+
+### Bug Fixes
+
+* **cli:** support root document inventory ([#14](https://github.com/ysfaran/waymark/issues/14)) ([6c61727](https://github.com/ysfaran/waymark/commit/6c617278dc20bf938f3ef07c0975893483de9825))
+
 ## [0.3.0](https://github.com/ysfaran/waymark/compare/v0.2.2...v0.3.0) (2026-09-25)
 
 
