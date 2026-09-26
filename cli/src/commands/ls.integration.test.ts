@@ -146,6 +146,43 @@ integrationTest(
 );
 
 integrationTest(
+  "ls recursively inventories the configuration root",
+  async ({ temporaryRepositoryPath: repositoryPath }) => {
+    await mkdir(join(repositoryPath, "docs"));
+    await writeFile(
+      join(repositoryPath, "waymark.yaml"),
+      "require-namespace: false\n" +
+        "kinds:\n" +
+        "  guide: Guides\n" +
+        "tags: {}\n",
+      "utf8",
+    );
+    await writeFile(join(repositoryPath, "README.md"), "# Unregistered\n");
+    await writeFile(
+      join(repositoryPath, "docs", "guide.md"),
+      "---\nkind: guide\ndescription: A guide\n---\n",
+      "utf8",
+    );
+
+    const registeredResult = runWaymark({
+      arguments: ["ls", "-R", "."],
+      workingDirectoryPath: repositoryPath,
+    });
+    const unregisteredResult = runWaymark({
+      arguments: ["ls", "-R", "--unregistered", "."],
+      workingDirectoryPath: repositoryPath,
+    });
+
+    expect(registeredResult.status).toBe(0);
+    expect(registeredResult.stdout).toBe("docs/guide.md\n");
+    expect(registeredResult.stderr).toBe("");
+    expect(unregisteredResult.status).toBe(0);
+    expect(unregisteredResult.stdout).toBe("README.md\n");
+    expect(unregisteredResult.stderr).toBe("");
+  },
+);
+
+integrationTest(
   "ls validates attempted registrations only within the selected scope",
   async ({ temporaryRepositoryPath: repositoryPath }) => {
     await mkdir(join(repositoryPath, "docs"));

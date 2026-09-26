@@ -200,7 +200,10 @@ function createCandidatePatterns(
     ];
   }
 
-  const directoryPattern = convertPathToPattern(scope.relativeDirectoryPath);
+  const directoryPattern =
+    scope.relativeDirectoryPath === ""
+      ? ""
+      : convertPathToPattern(scope.relativeDirectoryPath);
   const directoryPrefix = directoryPattern === "" ? "" : `${directoryPattern}/`;
   const candidatePrefix = scope.recursive
     ? `${directoryPrefix}**/`
