@@ -135,7 +135,7 @@
     "waymark-setup": {
       "source": "./skills",
       "sourceType": "local",
-      "computedHash": "60aa2dbe4ba52bb5b90b1b2aca6024484cc9f92801379fcb07678658c86f5cb3"
+      "computedHash": "67ac627cf76574863faacf3ec9e6b52d2f9bb5a55c87638ef11e0b2ba32d46d4"
     },
     "writing-for-agents": {
       "source": "mattpocock/skills",
