@@ -1,0 +1,7 @@
+interface:
+  display_name: "Waymark"
+  short_description: "Discover relevant repository documents"
+  default_prompt: "Use $waymark to discover the repository context relevant to this task."
+
+policy:
+  allow_implicit_invocation: true

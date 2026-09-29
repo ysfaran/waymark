@@ -33,14 +33,15 @@ Each document has three searchable metadata dimensions:
 
 ## Installation
 
-Install the `waymark` and `waymark-setup` skills for your coding agents:
+Install all Waymark skills for your coding agents:
 
 ```sh
-npx skills add ysfaran/waymark --skill waymark --skill waymark-setup
+npx skills add ysfaran/waymark --skill "*"
 ```
 
-`waymark-setup` automatically detects the active package manager and installs
-`waymark-docs` locally as a development dependency.
+- `waymark` _(agents can invoke automatically)_ — Discover relevant documents and maintain their metadata.
+- `waymark-setup` _(user-invokable only)_ — Install the Waymark CLI and set it up in a repository.
+- `waymark-retro` _(user-invokable only)_ — Review a completed task's Waymark journey and propose fixes.
 
 To install the CLI manually instead, run the matching command:
 
@@ -56,7 +57,7 @@ npm install --save-dev waymark-docs
 1. Install the skills in the repository you want to set up:
 
    ```sh
-   npx skills add ysfaran/waymark --skill waymark --skill waymark-setup
+   npx skills add ysfaran/waymark --skill "*"
    ```
 
 2. Ask your coding agent to use `waymark-setup`. This one-time interactive

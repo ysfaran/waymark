@@ -1,2 +1,7 @@
+interface:
+  display_name: "Waymark Setup"
+  short_description: "Install and configure Waymark"
+  default_prompt: "Use $waymark-setup to install and configure Waymark in this repository."
+
 policy:
   allow_implicit_invocation: false
