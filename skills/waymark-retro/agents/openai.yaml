@@ -1,0 +1,7 @@
+interface:
+  display_name: "Waymark Retro"
+  short_description: "Review a task's Waymark journey"
+  default_prompt: "Use $waymark-retro to review this completed task's Waymark journey and propose improvements."
+
+policy:
+  allow_implicit_invocation: false

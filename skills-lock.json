@@ -130,12 +130,17 @@
     "waymark": {
       "source": "./skills",
       "sourceType": "local",
-      "computedHash": "4501025ecb8cd7549fe1e0bd52c8556db306e09498930a1ee8a0a8288818a3b2"
+      "computedHash": "39b8f6b685e1ab92054456b44c37ebcc94dc7edd6cf6897211ab695d2df1c12f"
+    },
+    "waymark-retro": {
+      "source": "./skills",
+      "sourceType": "local",
+      "computedHash": "43bf94470c868df09f63915f521a7ed6141ec1f06e42a68cc7b66c5264caa52d"
     },
     "waymark-setup": {
       "source": "./skills",
       "sourceType": "local",
-      "computedHash": "aa631f597814fee6e5ce490ad6bbd183f370abb7ad19f6a5b927afc8240efe34"
+      "computedHash": "6a107ce1c1b236770b6bd62503f50e37d116963afd17fac55063c1a663d71524"
     },
     "writing-for-agents": {
       "source": "mattpocock/skills",

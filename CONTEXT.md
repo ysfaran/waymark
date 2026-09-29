@@ -61,3 +61,9 @@ _Avoid_: Full-text search, semantic query
 Explicit criteria supplied by a coding agent to select Waymark Documents by
 Document Scope, Document Kind, and Document Tag.
 _Avoid_: Relevance query, search prompt
+
+**Waymark Retro**:
+A task-bound review of one coding-agent session's complete interaction with
+Waymark that identifies evidence-backed discovery problems and proposes fixes.
+It is read-only unless a user separately approves follow-up changes.
+_Avoid_: Documentation audit, Discovery Retrospective
