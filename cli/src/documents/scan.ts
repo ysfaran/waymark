@@ -59,7 +59,15 @@ export async function scanDocuments({
   const discoveredPaths = await globby(createCandidatePatterns(resolvedScope), {
     cwd: scanRootPath,
     gitignore: true,
-    ignore: ["**/.git", "**/.git/**", ...configuration.ignorePatterns],
+    ignore: [
+      "**/.git",
+      "**/.git/**",
+      "**/.agents/skills/**",
+      "**/.claude/skills/**",
+      "**/CLAUDE.md",
+      "**/AGENTS.md",
+      ...configuration.ignorePatterns,
+    ],
     dot: true,
     followSymbolicLinks: false,
     braceExpansion: false,

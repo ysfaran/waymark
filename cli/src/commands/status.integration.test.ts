@@ -220,6 +220,58 @@ integrationTest(
 );
 
 integrationTest(
+  "status ignores agent instructions and installed skills at any depth by default",
+  async ({ temporaryRepositoryPath: repositoryPath }) => {
+    await writeFile(
+      join(repositoryPath, "waymark.yaml"),
+      "require-namespace: false\nkinds: {guide: Guides}\ntags: {}\n",
+      "utf8",
+    );
+    const registeredDocument =
+      "---\nkind: guide\ndescription: A guide\n---\n# Guide\n";
+
+    for (const prefix of ["", "packages/example"]) {
+      const directoryPath = join(repositoryPath, prefix);
+      await mkdir(directoryPath, { recursive: true });
+      await writeFile(join(directoryPath, "AGENTS.md"), registeredDocument);
+      await writeFile(join(directoryPath, "CLAUDE.md"), "---\nkind: []\n---\n");
+      for (const agentDirectory of [".agents", ".claude"]) {
+        const skillPath = join(
+          directoryPath,
+          agentDirectory,
+          "skills",
+          "example",
+        );
+        await mkdir(skillPath, { recursive: true });
+        await writeFile(join(skillPath, "SKILL.md"), registeredDocument);
+        await writeFile(join(skillPath, "notes.mdx"), "# Notes\n");
+        await writeFile(join(skillPath, "waymark.yaml"), "invalid: true\n");
+      }
+    }
+    await mkdir(join(repositoryPath, "skills"));
+    await writeFile(
+      join(repositoryPath, "skills", "SKILL.md"),
+      registeredDocument,
+    );
+    await writeFile(
+      join(repositoryPath, ".agents", "guide.md"),
+      registeredDocument,
+    );
+    await writeFile(join(repositoryPath, "README.md"), "# Repository\n");
+
+    const result = runWaymark({
+      arguments: ["status"],
+      workingDirectoryPath: repositoryPath,
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("Waymark Documents: 2\n");
+    expect(result.stdout).toContain("Unregistered Documents: 1\n");
+    expect(result.stderr).toBe("");
+  },
+);
+
+integrationTest(
   "status recognizes flat and namespaced metadata without claiming unrelated frontmatter",
   async ({ temporaryRepositoryPath: repositoryPath }) => {
     await writeFile(
