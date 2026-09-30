@@ -2,6 +2,13 @@
 
 All notable changes to Waymark are documented in this file.
 
+## [0.4.1](https://github.com/ysfaran/waymark/compare/v0.4.0...v0.4.1) (2026-09-30)
+
+
+### Bug Fixes
+
+* **cli:** ignore agent instructions and installed skills by default ([#19](https://github.com/ysfaran/waymark/issues/19)) ([b7f19e8](https://github.com/ysfaran/waymark/commit/b7f19e8b8f05ece75b9358daf71b7d0852cd88a8))
+
 ## [0.4.0](https://github.com/ysfaran/waymark/compare/v0.3.1...v0.4.0) (2026-09-29)
 
 
