@@ -2,6 +2,13 @@
 
 All notable changes to Waymark are documented in this file.
 
+## [0.4.0](https://github.com/ysfaran/waymark/compare/v0.3.1...v0.4.0) (2026-09-29)
+
+
+### Features
+
+* **skills:** add Waymark retrospective ([#17](https://github.com/ysfaran/waymark/issues/17)) ([28c0705](https://github.com/ysfaran/waymark/commit/28c0705f1350e9ad69c87294ddfc8d614f0eca6f))
+
 ## [0.3.1](https://github.com/ysfaran/waymark/compare/v0.3.0...v0.3.1) (2026-09-26)
 
 
