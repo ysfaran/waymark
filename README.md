@@ -128,7 +128,9 @@ ignore:
 ```
 
 Ignore patterns are relative to the repository root and support `*`, `?` and
-`**` wildcards. Waymark also honors `.gitignore` automatically.
+`**` wildcards. Waymark also honors `.gitignore` automatically and always skips
+Git directories, `.agents/skills/`, `.claude/skills/`, `CLAUDE.md`, and `AGENTS.md`
+at any depth.
 
 `init` never overwrites an existing configuration and does not allow a nested
 configuration beneath another Waymark root.
