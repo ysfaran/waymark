@@ -135,7 +135,7 @@
     "waymark-retro": {
       "source": "./skills",
       "sourceType": "local",
-      "computedHash": "43bf94470c868df09f63915f521a7ed6141ec1f06e42a68cc7b66c5264caa52d"
+      "computedHash": "66e5c40a32b125839ada9329fedcb9d7febc671e1f13b0bbae9fa002c9005aa2"
     },
     "waymark-setup": {
       "source": "./skills",

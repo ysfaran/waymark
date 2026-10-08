@@ -16,3 +16,4 @@ should read relevant documents here before starting a new investigation.
 - [npm package naming and binary publication for the Waymark CLI](npm-cli-package-naming.md)
 - [npm package release automation](npm-package-release-automation.md)
 - [TypeScript linting and type-checking alternatives](typescript-linting-and-type-checking-alternatives.md)
+- [Waymark retro comparison with Matt Pocock's retro skill](waymark-retro-comparison.md)
