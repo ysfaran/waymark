@@ -9,8 +9,9 @@ Use the active package manager's local binary runner; usually `npx waymark`.
 
 1. Run `waymark show scopes`; select relevant scopes.
 2. Run `waymark show kinds --scopes <scopes>` and `waymark show tags --scopes <scopes>`, or omit `--scopes` when none apply.
-3. Run `waymark find` with the selected `--scopes`, `--kinds`, and `--tags`; read the matches before working.
-4. Refine or broaden noisy or incomplete results. `--query "text"` searches bodies literally and case-insensitively. Use `--filter 'scope:backend AND (kind:adr OR kind:convention)'` for Boolean metadata.
+3. Run `waymark find` with the selected `--scopes`, `--kinds`, and `--tags`.
+4. Run `waymark find --query "<term>"` for domain nouns and specific terms from the user request, without metadata filters. Read relevant matches before working.
+5. Refine or broaden noisy or incomplete results. `--query "text"` searches bodies literally and case-insensitively. Use `--filter 'scope:backend AND (kind:adr OR kind:convention)'` for Boolean metadata.
 
 # Add vocabulary or documents
 
